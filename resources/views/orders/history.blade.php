@@ -49,7 +49,7 @@
                             <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">STATUS</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">TOTAL</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">WAKTU</th>
-                            <th class="px-6 py-4 text-center text-xs font-bold text-white uppercase tracking-wider">CETAK BUKTI</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">AKSI</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -83,14 +83,21 @@
                                 <div class="text-sm text-gray-600">{{ $transaction->created_at->format('H:i') }}</div>
                                 <div class="text-xs text-gray-400">{{ $transaction->created_at->format('d/m/Y') }}</div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <a href="{{ route('admin.orders.print-receipt', $transaction) }}" target="_blank" 
-                                   class="inline-flex items-center px-4 py-2 bg-[#4F2E22] text-white text-sm font-bold rounded-lg hover:bg-[#3f251b] transition-all duration-200 transform hover:scale-105 shadow-md">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
-                                    </svg>
-                                    Cetak
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="javascript:alert('Link clicked! ID: {{ $transaction->id }}');" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center gap-1 inline-block mr-1">
+                                    <i class="fas fa-link"></i>
+                                    Link
                                 </a>
+
+                                <button type="button" onclick="alert('Button clicked! ID: {{ $transaction->id }}');" class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center gap-1 mr-1">
+                                    <i class="fas fa-mouse"></i>
+                                    Button
+                                </button>
+
+                                <button type="button" class="print-receipt-btn bg-[#4F2E22] hover:bg-[#3f251b] text-white px-2 py-1 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center gap-1" onclick="testSimplePrint('{{ $transaction->id }}', '{{ $transaction->transaction_number }}'); return false;">
+                                    <i class="fas fa-print"></i>
+                                    Cetak
+                                </button>
                             </td>
                         </tr>
                         @empty
@@ -117,3 +124,233 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+// Debug: Check if script loads
+console.log('History script loaded');
+
+// Super simple test function without API
+function testSimplePrint(transactionId, transactionNumber) {
+    console.log('=== TEST SIMPLE PRINT CALLED ===');
+    console.log('Transaction ID:', transactionId);
+    console.log('Transaction Number:', transactionNumber);
+    console.log('Current URL:', window.location.href);
+    
+    alert('TEST: Tombol cetak berhasil diklik!\nTransaction ID: ' + transactionId + '\nTransaction Number: ' + transactionNumber);
+    
+    // Create simple test print window
+    try {
+        const printWindow = window.open('', '_blank', 'width=400,height=600');
+        
+        if (!printWindow) {
+            alert('Popup blocker terdeteksi! Silakan izinkan popup.');
+            return;
+        }
+        
+        const simpleHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Test Struk</title>
+            <style>
+                body { font-family: Arial; padding: 20px; text-align: center; }
+                button { padding: 10px 20px; margin: 10px; }
+            </style>
+        </head>
+        <body>
+            <h2>TEST STRUK BERHASIL!</h2>
+            <p>Transaction ID: ${transactionId}</p>
+            <p>Transaction Number: ${transactionNumber}</p>
+            <p>Ini adalah test untuk memastikan print window berfungsi.</p>
+            <button onclick="window.print()">Cetak Test</button>
+            <button onclick="window.close()">Tutup</button>
+        </body>
+        </html>
+        `;
+        
+        printWindow.document.write(simpleHTML);
+        printWindow.document.close();
+        
+        console.log('Test print window opened successfully');
+        
+    } catch (error) {
+        console.error('Error creating test print window:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+function printHistoryReceipt(transaction) {
+    console.log('=== PRINT HISTORY RECEIPT CALLED ===');
+    console.log('Transaction data:', transaction);
+    
+    try {
+        // Create print window
+        console.log('Creating print window...');
+        const printWindow = window.open('', '_blank', 'width=400,height=600');
+        
+        if (!printWindow) {
+            alert('Popup blocker terdeteksi! Silakan izinkan popup untuk mencetak struk.');
+            return;
+        }
+        
+        console.log('Print window created successfully');
+        
+        // Format date
+        const date = new Date(transaction.created_at);
+        const dateStr = date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        
+        console.log('Formatted date:', dateStr, timeStr);
+    
+    // Build receipt HTML with new design
+    const printHTML = `
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <title>Struk Pagi Coffee</title>
+        <style>
+          @page { size: 58mm auto; margin: 0; }
+          body {
+            font-family: 'Courier New', Courier, monospace;
+            width: 48mm;
+            margin: 0 auto;
+            padding: 5mm 0;
+            font-size: 9pt;
+            color: #000;
+          }
+          .divider {
+            margin: 2mm 0;
+            text-align: center;
+            overflow: hidden;
+            white-space: nowrap;
+            letter-spacing: -1px;
+          }
+          table { width: 100%; border-collapse: collapse; }
+          td { padding: 0.5mm 0; vertical-align: top; }
+          
+          @media print {
+            body { width: 48mm; margin: 0 auto; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+
+        <button class="no-print" onclick="window.print()" style="margin-bottom: 20px; width: 100%; padding: 10px; cursor: pointer;">
+          CETAK STRUK SEKARANG
+        </button>
+
+        <div style="text-align: center;">
+          <div style="font-size: 14pt; font-weight: bold;">PAGI COFFEE</div>
+          <div style="font-size: 9pt;">Jl. Contoh No. 123, Jakarta</div>
+        </div>
+
+        <div class="divider">--------------------------------</div>
+
+        <table>
+          <tr>
+            <td colspan="2" style="font-size: 10pt; font-weight: bold; text-align: center;">INVOICE KASIR</td>
+          </tr>
+          <tr>
+            <td style="font-size: 8pt;">TGL: ${dateStr}</td>
+            <td style="font-size: 8pt; text-align: right;">${timeStr}</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="font-size: 8pt; text-align: center;">${transaction.transaction_number}</td>
+          </tr>
+        </table>
+
+        <div class="divider">--------------------------------</div>
+
+        <table>
+          ${transaction.items.map(item => `
+            <tr>
+              <td style="font-size: 8pt; width: 60%;">${item.quantity}x ${item.name}</td>
+              <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(item.subtotal).toLocaleString('id-ID')}</td>
+            </tr>
+          `).join('')}
+        </table>
+
+        <div class="divider">--------------------------------</div>
+
+        <table>
+          <tr>
+            <td style="font-size: 8pt; width: 60%;">SUBTOTAL</td>
+            <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(transaction.subtotal).toLocaleString('id-ID')}</td>
+          </tr>
+          ${transaction.discount_amount > 0 ? `
+          <tr>
+            <td style="font-size: 8pt; width: 60%;">DISKON</td>
+            <td style="font-size: 8pt; width: 40%; text-align: right;">-${parseInt(transaction.discount_amount).toLocaleString('id-ID')}</td>
+          </tr>
+          ` : ''}
+          ${transaction.tax_amount > 0 ? `
+          <tr>
+            <td style="font-size: 8pt; width: 60%;">PAJAK</td>
+            <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(transaction.tax_amount).toLocaleString('id-ID')}</td>
+          </tr>
+          ` : ''}
+          <tr>
+            <td style="font-size: 10pt; font-weight: bold; width: 60%;">TOTAL</td>
+            <td style="font-size: 10pt; font-weight: bold; width: 40%; text-align: right;">${parseInt(transaction.total_amount).toLocaleString('id-ID')}</td>
+          </tr>
+        </table>
+
+        <div class="divider">--------------------------------</div>
+
+        <table>
+          <tr>
+            <td style="font-size: 8pt; width: 60%;">${transaction.payment_method.toUpperCase()}</td>
+            <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(transaction.total_amount).toLocaleString('id-ID')}</td>
+          </tr>
+          ${transaction.cash_received ? `
+          <tr>
+            <td style="font-size: 8pt; width: 60%;">KEMBALI</td>
+            <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(transaction.cash_received - transaction.total_amount).toLocaleString('id-ID')}</td>
+          </tr>
+          ` : ''}
+        </table>
+
+        <div class="divider">--------------------------------</div>
+        <div style="margin-top: 5mm; font-size: 7pt; text-align: center;">
+          Terima kasih atas kunjungan Anda<br>
+          Barang yang sudah dibeli tidak dapat<br>
+          dikembalikan
+        </div>
+
+      </body>
+      </html>
+    `;
+    
+    console.log('Writing HTML to print window...');
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
+    
+    console.log('Setting up print window onload...');
+    // Auto print
+    printWindow.onload = function() {
+        console.log('Print window loaded, triggering print...');
+        try {
+            printWindow.print();
+            console.log('Print dialog opened successfully');
+        } catch (error) {
+            console.error('Error printing:', error);
+            alert('Gagal membuka dialog print. Silakan gunakan Ctrl+P untuk mencetak.');
+        }
+    };
+    
+    printWindow.onerror = function() {
+        console.error('Error loading print window');
+        alert('Gagal memuat window print. Silakan coba lagi.');
+    };
+    
+    console.log('Print receipt setup completed');
+    
+    } catch (error) {
+        console.error('Error in printHistoryReceipt:', error);
+        alert('Terjadi kesalahan saat mencetak struk: ' + error.message);
+    }
+}
+</script>
+@endpush

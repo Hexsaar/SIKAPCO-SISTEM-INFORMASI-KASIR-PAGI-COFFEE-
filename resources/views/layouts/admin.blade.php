@@ -48,6 +48,10 @@
                     <span class="material-icons">account_balance_wallet</span>
                     Keuangan
                 </a>
+                <a href="{{ route('admin.expenses.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold {{ request()->routeIs('admin.expenses.*') ? 'bg-[#4B332B] text-white' : 'hover:bg-[#F3F3F3]' }}">
+                    <span class="material-icons">receipt_long</span>
+                    Laporan Keuangan
+                </a>
                 <a href="{{ route('admin.orders.history') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold {{ request()->routeIs('admin.orders.history') ? 'bg-[#4B332B] text-white' : 'hover:bg-[#F3F3F3]' }}">
                     <span class="material-icons">history</span>
                     History
@@ -112,6 +116,10 @@
                 <a href="{{ route('admin.finance.index') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-5 py-3.5 transition {{ request()->routeIs('admin.finance.*') ? 'bg-[#4B332B] text-white' : 'text-gray-800 hover:bg-gray-100' }}">
                     <span class="material-icons text-lg">account_balance_wallet</span>
                     <span>Keuangan</span>
+                </a>
+                <a href="{{ route('admin.expenses.index') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-5 py-3.5 transition {{ request()->routeIs('admin.expenses.*') ? 'bg-[#4B332B] text-white' : 'text-gray-800 hover:bg-gray-100' }}">
+                    <span class="material-icons text-lg">receipt_long</span>
+                    <span>Laporan Keuangan</span>
                 </a>
                 <a href="{{ route('admin.orders.history') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-5 py-3.5 transition {{ request()->routeIs('admin.orders.history') ? 'bg-[#4B332B] text-white' : 'text-gray-800 hover:bg-gray-100' }}">
                     <span class="material-icons text-lg">history</span>

@@ -29,20 +29,23 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = auth()->user();
-        
+
+        // Clear any intended URL to force redirect based on role
+        $request->session()->forget('url.intended');
+
         // Redirect based on user role
         if ($user->role === 'admin') {
-            return redirect()->intended(route('admin.dashboard', absolute: false));
+            return redirect()->route('admin.dashboard');
         } elseif ($user->role === 'kasir') {
-            return redirect()->intended(route('kasir.index', absolute: false));
+            return redirect()->route('kasir.index');
         } elseif ($user->role === 'barista') {
-            return redirect()->intended(route('barista.index', absolute: false));
+            return redirect()->route('barista.index');
         } elseif ($user->role === 'pending') {
-            return redirect()->intended(route('pending.index', absolute: false));
+            return redirect()->route('kasir.index');
         }
-        
+
         // Fallback to dashboard
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->route('dashboard');
     }
 
     /**

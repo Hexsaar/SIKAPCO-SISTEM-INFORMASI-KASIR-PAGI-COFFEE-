@@ -46,7 +46,7 @@
             <div class="flex justify-between items-center">
                 <div>
                     <p class="text-sm opacity-90">Stok</p>
-                    <p class="text-2xl font-bold">{{ $totalProducts }} Chart</p>
+                    <p class="text-2xl font-bold">{{ $totalProducts }} Menu</p>
                 </div>
                 <div class="bg-white/20 rounded-full p-3">
                     <i class="fas fa-chart-bar text-xl"></i>
@@ -59,18 +59,14 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Statistics Line Chart -->
         <div class="bg-white rounded-xl shadow-lg p-6">
-            <h3 class="text-lg font-semibold mb-4">Statistics</h3>
+            <h3 class="text-lg font-semibold mb-4">Grafik Penjualan</h3>
             <div class="h-64">
                 <canvas id="salesChart"></canvas>
             </div>
             <div class="flex justify-center gap-6 mt-4">
                 <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 bg-blue-400 rounded-full"></div>
-                    <span class="text-sm text-gray-600">Something</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 bg-pink-400 rounded-full"></div>
-                    <span class="text-sm text-gray-600">Permata</span>
+                    <div class="w-3 h-3 bg-purple-400 rounded-full"></div>
+                    <span class="text-sm text-gray-600">Penjualan Bulanan</span>
                 </div>
             </div>
         </div>
@@ -88,7 +84,7 @@
             </div>
             <div class="grid grid-cols-2 gap-2 mt-4">
                 <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
                     <span class="text-sm text-gray-600">Coffee</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -104,7 +100,7 @@
                     <span class="text-sm text-gray-600">Snack</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
+                    <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
                     <span class="text-sm text-gray-600">Bottle</span>
                 </div>
             </div>
@@ -177,19 +173,10 @@
             labels: {!! json_encode($months) !!},
             datasets: [
                 {
-                    label: 'Something',
+                    label: 'Penjualan Bulanan',
                     data: {!! json_encode($incomeData) !!},
-                    borderColor: 'rgb(96, 165, 250)',
-                    backgroundColor: 'rgba(96, 165, 250, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    borderWidth: 3
-                },
-                {
-                    label: 'Permata',
-                    data: {!! json_encode(array_map(function($val) { return $val * 0.8; }, $incomeData)) !!},
-                    borderColor: 'rgb(244, 114, 182)',
-                    backgroundColor: 'rgba(244, 114, 182, 0.1)',
+                    borderColor: 'rgb(168, 85, 247)',
+                    backgroundColor: 'rgba(168, 85, 247, 0.1)',
                     tension: 0.4,
                     fill: true,
                     borderWidth: 3
@@ -234,11 +221,11 @@
             datasets: [{
                 data: {!! json_encode($categorySales['data'] ?? []) !!},
                 backgroundColor: [
-                    'rgb(59, 130, 246)',
+                    'rgb(168, 85, 247)',
                     'rgb(34, 197, 94)',
                     'rgb(234, 179, 8)',
                     'rgb(249, 115, 22)',
-                    'rgb(168, 85, 247)'
+                    'rgb(59, 130, 246)'
                 ],
                 borderWidth: 0
             }]

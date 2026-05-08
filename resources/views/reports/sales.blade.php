@@ -43,11 +43,20 @@
                 <a href="{{ route('admin.reports.sales') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
                     Reset
                 </a>
+                <a href="?date={{ today()->format('Y-m-d') }}" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+                    <i class="fas fa-calendar-day mr-2"></i>Hari Ini
+                </a>
+                <a href="?month={{ now()->month }}&year={{ now()->year }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-calendar-alt mr-2"></i>Bulan Ini
+                </a>
+                <a href="?year={{ now()->year }}" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700">
+                    <i class="fas fa-calendar mr-2"></i>Tahun Ini
+                </a>
                 <a href="{{ route('admin.reports.sales.pdf') }}?{{ http_build_query(request()->all()) }}" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700" target="_blank">
-                    <i class="fas fa-file-pdf mr-2"></i>Export PDF
+                    <i class="fas fa-file-pdf mr-2"></i>PDF
                 </a>
                 <a href="{{ route('admin.reports.sales.excel') }}?{{ http_build_query(request()->all()) }}" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-                    <i class="fas fa-file-excel mr-2"></i>Export Excel
+                    <i class="fas fa-file-excel mr-2"></i>Excel
                 </a>
             </div>
         </form>
@@ -73,127 +82,102 @@
         </div>
     </div>
 
-    <!-- Best Sellers -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold mb-4">Menu Terlaris (Best Seller)</h3>
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead>
-                    <tr class="text-left bg-gray-50">
-                        <th class="p-3">Nama Menu</th>
-                        <th class="p-3">Harga</th>
-                        <th class="p-3">Total Terjual</th>
-                        <th class="p-3">Total Revenue</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($bestSellers as $item)
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="p-3">{{ $item->name }}</td>
-                        <td class="p-3">Rp {{ number_format($item->price, 0, ',', '.') }}</td>
-                        <td class="p-3">{{ $item->total_sold }}x</td>
-                        <td class="p-3">Rp {{ number_format($item->total_revenue, 0, ',', '.') }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Daily Sales Chart -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold mb-4">Grafik Penjualan 30 Hari Terakhir</h3>
-        <div class="h-80">
-            <canvas id="salesChart"></canvas>
-        </div>
-    </div>
-
+    
     <!-- Orders Table -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="p-6 border-b">
-            <h3 class="text-lg font-semibold">Detail Transaksi</h3>
-        </div>
-        <div class="p-6">
-            <table class="w-full">
-                <thead>
-                    <tr class="text-left bg-gray-50">
-                        <th class="p-3">No. Order</th>
-                        <th class="p-3">Tanggal</th>
-                        <th class="p-3">Kasir</th>
-                        <th class="p-3">Items</th>
-                        <th class="p-3">Total</th>
-                        <th class="p-3">Payment</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($orders as $order)
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="p-3">{{ $order->order_number }}</td>
-                        <td class="p-3">{{ $order->created_at->format('d/m/Y H:i') }}</td>
-                        <td class="p-3">{{ $order->user->name }}</td>
-                        <td class="p-3">
-                            @foreach($order->items as $item)
-                                <div>{{ $item->product_name }} ({{ $item->quantity }}x)</div>
-                            @endforeach
-                        </td>
-                        <td class="p-3">Rp {{ number_format($order->total, 0, ',', '.') }}</td>
-                        <td class="p-3">
-                            <span class="px-2 py-1 text-xs rounded-full 
-                                @if($order->payment_method == 'cash') bg-green-100 text-green-800
-                                @elseif($order->payment_method == 'qris') bg-blue-100 text-blue-800
-                                @else bg-gray-100 text-gray-800
-                                @endif">
-                                {{ strtoupper($order->payment_method) }}
-                            </span>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-            <div class="mt-4">
-                {{ $orders->links() }}
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="p-6 border-b bg-gray-50">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold">Detail Transaksi</h3>
+                <div class="text-sm text-gray-600">
+                    Menampilkan <span class="font-bold">{{ $orders->count() }}</span> dari 
+                    <span class="font-bold">{{ $orders->total() }}</span> transaksi
+                    @if(request()->filled('date'))
+                        (Hari Ini: {{ request('date') }})
+                    @elseif(request()->filled('month'))
+                        (Bulan {{ DateTime::createFromFormat('!m', request('month'))->format('F') }} {{ request('year') }})
+                    @elseif(request()->filled('year'))
+                        (Tahun {{ request('year') }})
+                    @else
+                        (Hari Ini)
+                    @endif
+                </div>
             </div>
+        </div>
+        <div class="p-6 overflow-x-auto">
+            <div class="overflow-hidden rounded-lg border border-gray-200">
+                <table class="w-full">
+                    <thead class="bg-gradient-to-r from-[#4F2E22] to-[#3f251b] border-b border-gray-200">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">ORDER ID</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">PEMBAYARAN</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">STATUS</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">TOTAL</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">WAKTU</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold text-white uppercase tracking-wider">CETAK BUKTI</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse($orders as $order)
+                        <tr class="hover:bg-[#4F2E22] hover:bg-opacity-5 transition-colors duration-150">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-bold text-gray-900">{{ $order->transaction_number }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold
+                                    @if($order->payment_method == 'cash') bg-green-100 text-green-800 border border-green-200
+                                    @elseif($order->payment_method == 'qris') bg-blue-100 text-blue-800 border border-blue-200
+                                    @else bg-gray-100 text-gray-800 border border-gray-200
+                                    @endif">
+                                    {{ strtoupper($order->payment_method) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold
+                                    @if($order->status == 'completed') bg-green-100 text-green-800 border border-green-200
+                                    @elseif($order->status == 'pending') bg-yellow-100 text-yellow-800 border border-yellow-200
+                                    @else bg-gray-100 text-gray-800 border border-gray-200
+                                    @endif">
+                                    {{ strtoupper($order->status ?? 'completed') }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-bold text-gray-900">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-600">{{ $order->created_at->format('H:i') }}</div>
+                                <div class="text-xs text-gray-400">{{ $order->created_at->format('d/m/Y') }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <a href="{{ route('admin.orders.print-receipt', $order) }}" target="_blank" 
+                                   class="inline-flex items-center px-4 py-2 bg-[#4F2E22] text-white text-sm font-bold rounded-lg hover:bg-[#3f251b] transition-all duration-200 transform hover:scale-105 shadow-md">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                    </svg>
+                                    Cetak
+                                </a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">Belum ada transaksi</h3>
+                                <p class="text-sm text-gray-500">Transaksi akan muncul di sini setelah pelanggan melakukan pembayaran.</p>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            
+            @if($orders->hasPages())
+            <div class="mt-6">
+                {{ $orders->links('pagination.custom') }}
+            </div>
+            @endif
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: {!! json_encode($dailySales->pluck('date')->map(function($date) {
-                return \Carbon\Carbon::parse($date)->format('d/m');
-            })) !!},
-            datasets: [{
-                label: 'Pendapatan',
-                data: {!! json_encode($dailySales->pluck('total_revenue')) !!},
-                borderColor: 'rgb(59, 130, 246)',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'Rp ' + value.toLocaleString('id-ID');
-                        }
-                    }
-                }
-            }
-        }
-    });
-</script>
 @endsection

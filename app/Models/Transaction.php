@@ -16,12 +16,21 @@ class Transaction extends Model
         'payment_method',
         'items',
         'status',
+        'subtotal_amount',
+        'total_item_discount',
+        'global_discount_percent',
+        'global_discount_amount',
+        'notes',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
         'cash_received' => 'decimal:2',
         'change_amount' => 'decimal:2',
+        'subtotal_amount' => 'decimal:2',
+        'total_item_discount' => 'decimal:2',
+        'global_discount_percent' => 'decimal:2',
+        'global_discount_amount' => 'decimal:2',
         'items' => 'array',
     ];
 

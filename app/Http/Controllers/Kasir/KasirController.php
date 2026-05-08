@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Transaction;
+use App\Models\KasirHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -50,31 +51,49 @@ class KasirController extends Controller
             'items.*.id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'payment' => 'required|numeric|min:0',
+            'payment_method' => 'required|in:cash,qris',
             'customer_name' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:500',
+            'global_discount' => 'nullable|numeric|min:0|max:100',
+            'tax_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
 
         DB::beginTransaction();
         
         try {
-            // Hitung total
-            $total = 0;
+            // Hitung subtotal
+            $subtotal = 0;
             foreach ($request->items as $item) {
                 $product = Product::find($item['id']);
                 if ($product->stock < $item['quantity']) {
                     throw new \Exception("Stok {$product->name} tidak mencukupi");
                 }
-                $total += $product->price * $item['quantity'];
+                $subtotal += $product->price * $item['quantity'];
             }
+
+            // Hitung global discount
+            $globalDiscountPercent = $request->global_discount ?? 0;
+            $globalDiscountAmount = $subtotal * ($globalDiscountPercent / 100);
+            $afterDiscount = $subtotal - $globalDiscountAmount;
+
+            // Hitung tax
+            $taxPercentage = $request->tax_percentage ?? 0;
+            $taxAmount = $afterDiscount * ($taxPercentage / 100);
+            $total = $afterDiscount + $taxAmount;
+
+            // Generate order number dengan format ORD-IDPGICFFEE{DATE}-{URUTAN}
+            $transactionNumber = $this->generateOrderNumber();
 
             // Buat order
             $order = Order::create([
-                'order_number' => 'ORD-' . date('Ymd') . '-' . str_pad(Order::count() + 1, 4, '0', STR_PAD_LEFT),
-                'customer_name' => $request->customer_name ?? 'Guest',
-                'total_amount' => $total,
-                'payment_amount' => $request->payment,
-                'change_amount' => $request->payment - $total,
-                'status' => 'completed',
+                'order_number' => $transactionNumber,
                 'user_id' => auth()->id(),
+                'subtotal' => $subtotal,
+                'tax' => $taxAmount,
+                'total' => $total,
+                'payment_method' => $request->payment_method ?? 'cash',
+                'status' => 'done', // Use 'done' instead of 'completed'
+                'notes' => $request->notes ?? null,
             ]);
 
             // Buat order items dan kurangi stok
@@ -84,8 +103,10 @@ class KasirController extends Controller
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $product->id,
+                    'product_name' => $product->name,
                     'quantity' => $item['quantity'],
                     'price' => $product->price,
+                    'subtotal' => $product->price * $item['quantity'],
                 ]);
 
                 // Kurangi stok
@@ -93,11 +114,44 @@ class KasirController extends Controller
                 $product->save();
             }
 
+            // Simpan ke KasirHistory
+            $kasirHistory = KasirHistory::create([
+                'transaction_number' => $transactionNumber,
+                'user_id' => auth()->id(),
+                'payment_method' => $request->payment_method ?? 'cash',
+                'total_amount' => $total,
+                'cash_received' => $request->payment,
+                'change_amount' => $request->payment - $total,
+                'notes' => $request->notes ?? null,
+                'items' => $request->items,
+                'items_count' => count($request->items),
+                'status' => 'completed', // KasirHistory uses 'completed'
+            ]);
+
+            // Simpan ke Transaction untuk sinkronisasi dengan laporan penjualan
+            $transaction = Transaction::create([
+                'transaction_number' => $transactionNumber,
+                'user_id' => auth()->id(),
+                'total_amount' => $total,
+                'cash_received' => $request->payment,
+                'change_amount' => $request->payment - $total,
+                'payment_method' => $request->payment_method ?? 'cash',
+                'items' => $request->items,
+                'status' => 'completed', // Transaction uses 'completed'
+                'subtotal_amount' => $subtotal,
+                'total_item_discount' => 0,
+                'global_discount_percent' => $globalDiscountPercent,
+                'global_discount_amount' => $globalDiscountAmount,
+                'notes' => $request->notes ?? null,
+            ]);
+
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'order' => $order,
+                'kasir_history' => $kasirHistory,
+                'transaction' => $transaction,
                 'receipt_url' => route('kasir.receipt', $order->id)
             ]);
 
@@ -124,24 +178,64 @@ class KasirController extends Controller
 
     public function apiHistory()
     {
-        // Get today's transactions for kasir
-        $transactions = Transaction::with('user')
-            ->whereDate('created_at', today())
-            ->orderBy('created_at', 'desc')
-            ->limit(50) // Limit to last 50 transactions for performance
-            ->get(['id', 'transaction_number', 'payment_method', 'total_amount', 'created_at', 'user_id']);
+        // Very simple approach - return empty if no data, no complex logic
+        try {
+            $transactions = collect(); // Start with empty collection
+            
+            // Try to get transactions, but don't fail if table doesn't exist
+            try {
+                $transactions = Transaction::with('user')
+                    ->whereDate('created_at', today())
+                    ->orderBy('created_at', 'desc')
+                    ->limit(10)
+                    ->get(['id', 'transaction_number', 'payment_method', 'total_amount', 'created_at', 'user_id']);
+            } catch (\Exception $e) {
+                // Table might not exist, just return empty
+                $transactions = collect();
+            }
 
-        return response()->json([
-            'transactions' => $transactions->map(function ($transaction) {
-                return [
-                    'id' => $transaction->id,
-                    'transaction_number' => $transaction->transaction_number,
-                    'payment_method' => $transaction->payment_method,
-                    'total_amount' => $transaction->total_amount,
-                    'created_at' => $transaction->created_at->toISOString(),
-                    'user' => $transaction->user ? $transaction->user->name : 'System'
-                ];
-            })
-        ]);
+            return response()->json([
+                'transactions' => $transactions->map(function ($transaction) {
+                    return [
+                        'id' => $transaction->id ?? 0,
+                        'transaction_number' => $transaction->transaction_number ?? 'N/A',
+                        'payment_method' => $transaction->payment_method ?? 'cash',
+                        'total_amount' => $transaction->total_amount ?? 0,
+                        'created_at' => $transaction->created_at ? $transaction->created_at->toISOString() : now()->toISOString(),
+                        'user' => $transaction->user ? $transaction->user->name : 'System'
+                    ];
+                })
+            ]);
+            
+        } catch (\Exception $e) {
+            // Always return valid structure
+            return response()->json([
+                'transactions' => []
+            ]);
+        }
+    }
+
+    /**
+     * Generate order number dengan format ORD-IDPGICFFEE{DATE}-{URUTAN}
+     */
+    private function generateOrderNumber(): string
+    {
+        $date = now()->format('Ymd');
+        
+        // Cari transaksi terakhir hari ini untuk mendapatkan urutan
+        $lastTransaction = Transaction::whereDate('created_at', today())
+            ->orderBy('id', 'desc')
+            ->first();
+        
+        $sequence = 1;
+        if ($lastTransaction) {
+            // Extract sequence dari transaction number terakhir
+            $lastNumber = $lastTransaction->transaction_number;
+            if (preg_match('/ORD-IDPGICFFEE' . $date . '-(\d+)/', $lastNumber, $matches)) {
+                $sequence = (int)$matches[1] + 1;
+            }
+        }
+        
+        return 'ORD-IDPGICFFEE' . $date . '-' . str_pad($sequence, 3, '0', STR_PAD_LEFT);
     }
 }

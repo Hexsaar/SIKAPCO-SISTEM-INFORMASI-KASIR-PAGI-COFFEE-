@@ -8,14 +8,15 @@ use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Kasir\KasirController;
 use App\Http\Controllers\Barista\BaristaController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 Route::get('/', function () {
-    return redirect()->route('login');
-});
+    return view('landing');
+})->name('landing');
 
 // Redirect after login based on role
 Route::middleware(['auth'])->get('/redirect', function () {
@@ -87,6 +88,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/finance/daily', [FinanceController::class, 'daily'])->name('finance.daily');
     Route::get('/finance/monthly', [FinanceController::class, 'monthly'])->name('finance.monthly');
     Route::get('/finance/yearly', [FinanceController::class, 'yearly'])->name('finance.yearly');
+    
+    // Expenses
+    Route::resource('expenses', ExpenseController::class);
 });
 
 // Kasir Routes
