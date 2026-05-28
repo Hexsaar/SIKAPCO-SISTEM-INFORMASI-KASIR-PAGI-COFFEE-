@@ -7,6 +7,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('migrate', function () {
+// Kita tambahkan {--force} dan {--seed} biar kalau Railway ngetik itu, Laravel lu gak kaget
+Artisan::command('migrate {--force} {--seed}', function () {
     $this->info('Migrasi otomatis diblokir secara aman! Server siap menyala.');
 })->purpose('Mencegah crash build otomatis di Railway');
