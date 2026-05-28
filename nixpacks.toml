@@ -1,2 +1,0 @@
-[start]
-cmd = "node .nixpacks/assets/nginx.template.html"
