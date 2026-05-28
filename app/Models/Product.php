@@ -26,6 +26,11 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function recipes()
+    {
+        return $this->hasMany(Recipe::class);
+    }
+
     public function isOutOfStock()
     {
         return $this->stock <= 0;

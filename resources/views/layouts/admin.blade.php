@@ -44,9 +44,9 @@
                     <span class="material-icons">restaurant_menu</span>
                     Kelola Menu
                 </a>
-                <a href="{{ route('admin.finance.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold {{ request()->routeIs('admin.finance.*') ? 'bg-[#4B332B] text-white' : 'hover:bg-[#F3F3F3]' }}">
-                    <span class="material-icons">account_balance_wallet</span>
-                    Keuangan
+                <a href="{{ route('admin.ingredients.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold {{ request()->routeIs('admin.ingredients.*') ? 'bg-[#4B332B] text-white' : 'hover:bg-[#F3F3F3]' }}">
+                    <span class="material-icons">inventory_2</span>
+                    Stok Bahan Baku
                 </a>
                 <a href="{{ route('admin.expenses.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold {{ request()->routeIs('admin.expenses.*') ? 'bg-[#4B332B] text-white' : 'hover:bg-[#F3F3F3]' }}">
                     <span class="material-icons">receipt_long</span>
@@ -76,16 +76,30 @@
 
     <!-- MAIN CONTENT AREA -->
     <div class="flex-1 flex flex-col min-h-screen">
+        <!-- DESKTOP TOP NAVBAR -->
+        <nav class="hidden md:flex bg-white border-b border-gray-200 px-8 py-3">
+            <!-- Empty left side - profile moved to dashboard content -->
+        </nav>
+
         <!-- MOBILE NAVBAR (tanpa notifikasi, tanpa karyawan) -->
         <nav class="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#4F2E22] text-white h-14 flex items-center justify-between px-4 shadow-lg">
             <div class="flex items-center gap-2">
                 <span class="material-icons text-xl">restaurant</span>
                 <span class="font-bold text-sm">{{ config('app.name', 'Dashboard') }}</span>
             </div>
-            <!-- Hanya hamburger menu, tidak ada notifikasi bell -->
-            <button @click="mobileMenuOpen = !mobileMenuOpen" class="p-2 rounded-full hover:bg-white/10 transition">
-                <span class="material-icons text-xl" x-text="mobileMenuOpen ? 'close' : 'menu'">menu</span>
-            </button>
+            <!-- Mobile Profile -->
+            <div class="flex items-center gap-2">
+                <a href="{{ route('profile.edit') }}" class="flex items-center justify-center w-8 h-8 rounded-full overflow-hidden ring-2 ring-white/30">
+                    @if(Auth::user()->profile_photo)
+                        <img src="{{ Auth::user()->profile_photo_url }}" alt="Profile" class="w-full h-full object-cover">
+                    @else
+                        <img src="{{ Auth::user()->profile_photo_url }}" alt="Profile" class="w-full h-full object-cover">
+                    @endif
+                </a>
+                <button @click="mobileMenuOpen = !mobileMenuOpen" class="p-2 rounded-full hover:bg-white/10 transition">
+                    <span class="material-icons text-xl" x-text="mobileMenuOpen ? 'close' : 'menu'">menu</span>
+                </button>
+            </div>
         </nav>
 
         <!-- MOBILE DRAWER (menu sederhana tanpa karyawan/notifikasi) -->
@@ -112,6 +126,10 @@
                 <a href="{{ route('admin.products.index') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-5 py-3.5 transition {{ request()->routeIs('admin.products.*') ? 'bg-[#4B332B] text-white' : 'text-gray-800 hover:bg-gray-100' }}">
                     <span class="material-icons text-lg">restaurant_menu</span>
                     <span>Kelola Menu</span>
+                </a>
+                <a href="{{ route('admin.ingredients.index') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-5 py-3.5 transition {{ request()->routeIs('admin.ingredients.*') ? 'bg-[#4B332B] text-white' : 'text-gray-800 hover:bg-gray-100' }}">
+                    <span class="material-icons text-lg">inventory_2</span>
+                    <span>Stok Bahan Baku</span>
                 </a>
                 <a href="{{ route('admin.finance.index') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-5 py-3.5 transition {{ request()->routeIs('admin.finance.*') ? 'bg-[#4B332B] text-white' : 'text-gray-800 hover:bg-gray-100' }}">
                     <span class="material-icons text-lg">account_balance_wallet</span>
@@ -140,7 +158,7 @@
         </div>
 
         <!-- CONTENT UTAMA -->
-        <div class="px-4 pb-6 pt-16 md:pt-8 md:px-8 flex-1">
+        <div class="px-4 pb-6 pt-4 md:pt-6 md:px-8 flex-1">
             <h1 class="text-2xl font-semibold mb-6">@yield('title')</h1>
             @yield('content')
         </div>

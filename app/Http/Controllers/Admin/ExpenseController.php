@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Exports\ExpenseReportExport;
 use App\Models\Expense;
-use App\Models\Order;
+use App\Models\Transaction;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ExpenseController extends Controller
 {
@@ -17,13 +20,13 @@ class ExpenseController extends Controller
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->format('Y-m-d'));
 
-        // Get transactions data
-        $cashTransactions = Order::where('payment_method', 'cash')
+        // Get transactions data from kasir
+        $cashTransactions = Transaction::where('payment_method', 'CASH')
             ->where('status', 'completed')
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->sum('total_amount');
 
-        $qrisTransactions = Order::where('payment_method', 'qris')
+        $qrisTransactions = Transaction::where('payment_method', 'QRIS')
             ->where('status', 'completed')
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->sum('total_amount');
@@ -36,6 +39,11 @@ class ExpenseController extends Controller
             ->get();
 
         $totalExpenses = $expenses->sum('amount');
+        $cashExpenses = $expenses->where('type', 'cash')->sum('amount');
+        $qrisExpenses = $expenses->where('type', 'qris')->sum('amount');
+
+        $cashBalance = $cashTransactions - $cashExpenses;
+        $qrisBalance = $qrisTransactions - $qrisExpenses;
 
         // Calculate balance
         $netBalance = $totalIncome - $totalExpenses;
@@ -43,6 +51,10 @@ class ExpenseController extends Controller
         return view('admin.expenses.index', compact(
             'cashTransactions',
             'qrisTransactions', 
+            'cashExpenses',
+            'qrisExpenses',
+            'cashBalance',
+            'qrisBalance',
             'totalIncome',
             'expenses',
             'totalExpenses',
@@ -50,6 +62,58 @@ class ExpenseController extends Controller
             'startDate',
             'endDate'
         ));
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->input('end_date', now()->format('Y-m-d'));
+
+        $cashTransactions = Transaction::where('payment_method', 'CASH')
+            ->where('status', 'completed')
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->sum('total_amount');
+
+        $qrisTransactions = Transaction::where('payment_method', 'QRIS')
+            ->where('status', 'completed')
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->sum('total_amount');
+
+        $totalIncome = $cashTransactions + $qrisTransactions;
+
+        $expenses = Expense::whereBetween('expense_date', [$startDate, $endDate])
+            ->orderBy('expense_date', 'desc')
+            ->get();
+
+        $totalExpenses = $expenses->sum('amount');
+        $cashExpenses = $expenses->where('type', 'cash')->sum('amount');
+        $qrisExpenses = $expenses->where('type', 'qris')->sum('amount');
+
+        $cashBalance = $cashTransactions - $cashExpenses;
+        $qrisBalance = $qrisTransactions - $qrisExpenses;
+        $netBalance = $totalIncome - $totalExpenses;
+
+        $pdf = Pdf::loadView('admin.expenses.pdf', compact(
+            'cashTransactions',
+            'qrisTransactions',
+            'cashExpenses',
+            'qrisExpenses',
+            'cashBalance',
+            'qrisBalance',
+            'totalIncome',
+            'expenses',
+            'totalExpenses',
+            'netBalance',
+            'startDate',
+            'endDate'
+        ));
+
+        return $pdf->download('laporan-keuangan-'.$startDate.'-sd-'.$endDate.'.pdf');
+    }
+
+    public function exportExcel(Request $request)
+    {
+        return Excel::download(new ExpenseReportExport($request), 'laporan-keuangan-'.now()->format('Y-m-d').'.xlsx');
     }
 
     /**

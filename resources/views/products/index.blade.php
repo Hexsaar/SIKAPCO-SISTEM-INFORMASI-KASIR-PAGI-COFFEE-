@@ -6,7 +6,11 @@
 <div class="bg-white rounded-lg shadow" x-data="productApp()">
     <div class="p-6 border-b">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <h2 class="text-xl font-semibold text-[#4F2E22]">Daftar Menu</h2>
+            <div>
+                <h2 class="text-xl font-semibold text-[#4F2E22]">Daftar Menu</h2>
+                <p class="text-sm text-gray-600 mt-1">Kelola semua menu kopi dan makanan</p>
+            </div>
+            
             <button @click="showCreateModal = true" class="bg-[#4F2E22] text-white px-4 py-2 rounded-lg hover:bg-[#3e251b] transition-colors shadow-sm">
                 <span class="material-icons inline mr-2 text-sm">add</span>Tambah Menu
             </button>

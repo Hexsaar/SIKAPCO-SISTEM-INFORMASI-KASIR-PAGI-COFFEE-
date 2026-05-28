@@ -12,8 +12,21 @@
                     <h1 class="text-3xl font-bold text-gray-900">Laporan Keuangan</h1>
                     <p class="mt-1 text-sm text-gray-500">Kelola pemasukan dan pengeluaran bisnis Anda</p>
                 </div>
+                
                 <div class="flex space-x-3">
-                    <a href="{{ route('admin.expenses.create') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <a href="{{ route('admin.expenses.export-pdf') }}?{{ http_build_query(request()->only(['start_date', 'end_date'])) }}" target="_blank" class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Export PDF
+                    </a>
+                    <a href="{{ route('admin.expenses.export-excel') }}?{{ http_build_query(request()->only(['start_date', 'end_date'])) }}" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Export Excel
+                    </a>
+                    <a href="{{ route('admin.expenses.create') }}" class="inline-flex items-center px-4 py-2 bg-[#4F2E22] border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-[#3e251b] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4B332B]">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
@@ -42,7 +55,7 @@
                         <input type="date" id="end_date" name="end_date" value="{{ $endDate }}" class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                     </div>
                     <div class="flex items-end space-x-2">
-                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#4F2E22] hover:bg-[#3e251b] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4B332B]">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
@@ -71,8 +84,8 @@
                         </div>
                         <div class="ml-5 w-0 flex-1">
                             <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate">Pemasukan Cash</dt>
-                                <dd class="text-lg font-medium text-gray-900">Rp {{ number_format($cashTransactions, 0, ',', '.') }}</dd>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Saldo Cash</dt>
+                                <dd class="text-lg font-medium text-gray-900">Rp {{ number_format($cashBalance, 0, ',', '.') }}</dd>
                             </dl>
                         </div>
                     </div>
@@ -98,8 +111,8 @@
                         </div>
                         <div class="ml-5 w-0 flex-1">
                             <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate">Pemasukan QRIS</dt>
-                                <dd class="text-lg font-medium text-gray-900">Rp {{ number_format($qrisTransactions, 0, ',', '.') }}</dd>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Saldo QRIS</dt>
+                                <dd class="text-lg font-medium text-gray-900">Rp {{ number_format($qrisBalance, 0, ',', '.') }}</dd>
                             </dl>
                         </div>
                     </div>
@@ -223,7 +236,7 @@
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                     </svg>
                                                 </a>
-                                                <form action="{{ route('admin.expenses.destroy', $expense) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengeluaran ini?')">
+                                                <form action="{{ route('admin.expenses.destroy', $expense) }}" method="POST" class="expense-delete-form" data-description="{{ $expense->description }}" data-amount="{{ number_format($expense->amount, 0, ',', '.') }}">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="text-red-600 hover:text-red-900">
@@ -247,7 +260,7 @@
                         <h3 class="mt-2 text-sm font-medium text-gray-900">Belum ada pengeluaran</h3>
                         <p class="mt-1 text-sm text-gray-500">Mulai dengan menambahkan pengeluaran pertama Anda.</p>
                         <div class="mt-6">
-                            <a href="{{ route('admin.expenses.create') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <a href="{{ route('admin.expenses.create') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#4F2E22] hover:bg-[#3e251b] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4B332B]">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                 </svg>
@@ -260,4 +273,58 @@
         </div>
     </div>
 </div>
+
+<script>
+    function createConfirmModal(title, message, onConfirm) {
+        if (document.getElementById('confirm-delete-modal')) return;
+
+        const modal = document.createElement('div');
+        modal.id = 'confirm-delete-modal';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                <h2 class="text-xl font-semibold mb-4">${title}</h2>
+                <p class="text-gray-600 mb-6">${message}</p>
+                <div class="flex justify-end gap-3">
+                    <button id="confirm-delete-cancel" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">Batal</button>
+                    <button id="confirm-delete-ok" class="px-4 py-2 rounded-lg bg-[#4F2E22] text-white hover:bg-[#3e251b]">Hapus</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelector('#confirm-delete-cancel').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.remove();
+            }
+        });
+
+        modal.querySelector('#confirm-delete-ok').addEventListener('click', () => {
+            modal.remove();
+            onConfirm();
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.expense-delete-form').forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const description = form.dataset.description || 'pengeluaran ini';
+                const amount = form.dataset.amount ? 'Rp ' + form.dataset.amount : '';
+                const message = `Yakin ingin menghapus ${description} ${amount}?`;
+
+                createConfirmModal('Konfirmasi Hapus', message, function() {
+                    form.submit();
+                });
+            });
+        });
+    });
+</script>
 @endsection

@@ -9,9 +9,12 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\ExpenseController;
+use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\Kasir\KasirController;
 use App\Http\Controllers\Barista\BaristaController;
 use App\Http\Controllers\UserProfileController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 Route::get('/', function () {
@@ -82,6 +85,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
     Route::get('/reports/sales/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.sales.pdf');
     Route::get('/reports/sales/export-excel', [ReportController::class, 'exportExcel'])->name('reports.sales.excel');
+
+    // Expense exports
+    Route::get('/expenses/export-pdf', [ExpenseController::class, 'exportPdf'])->name('expenses.export-pdf');
+    Route::get('/expenses/export-excel', [ExpenseController::class, 'exportExcel'])->name('expenses.export-excel');
     
     // Finance
     Route::get('/finance', [FinanceController::class, 'index'])->name('finance.index');
@@ -91,6 +98,20 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     
     // Expenses
     Route::resource('expenses', ExpenseController::class);
+    
+    // Ingredients
+    Route::prefix('ingredients')->name('ingredients.')->group(function () {
+        Route::get('/', [IngredientController::class, 'index'])->name('index');
+        Route::get('/create', [IngredientController::class, 'create'])->name('create');
+        Route::post('/', [IngredientController::class, 'store'])->name('store');
+        Route::get('/{ingredient}/edit', [IngredientController::class, 'edit'])->name('edit');
+        Route::put('/{ingredient}', [IngredientController::class, 'update'])->name('update');
+        Route::delete('/{ingredient}', [IngredientController::class, 'destroy'])->name('destroy');
+        Route::post('/{ingredient}/stock-adjust', [IngredientController::class, 'stockAdjust'])->name('stock-adjust');
+        Route::get('/recipes', [IngredientController::class, 'recipeIndex'])->name('recipes');
+        Route::post('/recipes', [IngredientController::class, 'recipeStore'])->name('recipe-store');
+        Route::delete('/recipes/{recipe}', [IngredientController::class, 'recipeDestroy'])->name('recipe-destroy');
+    });
 });
 
 // Kasir Routes
@@ -101,6 +122,7 @@ Route::middleware(['auth', 'role:kasir,pending'])->prefix('kasir')->name('kasir.
     Route::post('/checkout', [KasirController::class, 'checkout'])->name('checkout');
     Route::get('/orders', [KasirController::class, 'orders'])->name('orders');
     Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
+    Route::get('/receipt/number/{order_number}', [KasirController::class, 'receiptByOrderNumber'])->name('receipt.by-number');
     Route::get('/api/transactions/history', [KasirController::class, 'apiHistory'])->name('api.transactions.history');
 });
 

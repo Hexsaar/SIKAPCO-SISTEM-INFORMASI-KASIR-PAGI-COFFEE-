@@ -13,7 +13,20 @@
         <div class="container mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold">Admin Panel</h1>
             <div class="flex items-center space-x-4">
-                <span class="text-sm">Welcome, Admin</span>
+                <!-- Profile Section -->
+                <div class="flex items-center gap-3">
+                    <div class="text-right">
+                        <p class="text-sm font-medium text-white">{{ Auth::user()->name }}</p>
+                        <p class="text-xs text-gray-300">{{ Auth::user()->username }}</p>
+                    </div>
+                    <a href="{{ route('profile.edit') }}" class="flex items-center justify-center w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/30 hover:ring-white transition-all">
+                        @if(Auth::user()->profile_photo)
+                            <img src="{{ Auth::user()->profile_photo_url }}" alt="Profile" class="w-full h-full object-cover">
+                        @else
+                            <img src="{{ Auth::user()->profile_photo_url }}" alt="Profile" class="w-full h-full object-cover">
+                        @endif
+                    </a>
+                </div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="text-sm hover:text-gray-200">Logout</button>

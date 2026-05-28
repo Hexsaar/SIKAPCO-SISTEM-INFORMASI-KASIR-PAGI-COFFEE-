@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use App\Models\Order;
+use App\Models\Transaction;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -19,8 +19,8 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping
 
     public function collection()
     {
-        $query = Order::with(['items.product', 'user'])
-            ->where('status', 'done');
+        $query = Transaction::with('user')
+            ->where('status', 'completed');
 
         if ($this->request->filled('start_date') && $this->request->filled('end_date')) {
             $query->whereBetween('created_at', [
@@ -35,28 +35,33 @@ class SalesReportExport implements FromCollection, WithHeadings, WithMapping
     public function headings(): array
     {
         return [
-            'No. Order',
+            'No. Transaksi',
             'Tanggal',
             'Kasir',
-            'Total Item',
-            'Subtotal',
-            'Pajak',
+            'Items',
             'Total',
             'Metode Pembayaran'
         ];
     }
 
-    public function map($order): array
+    public function map($transaction): array
     {
+        $items = [];
+        if (is_array($transaction->items)) {
+            foreach ($transaction->items as $item) {
+                $product = \App\Models\Product::find($item['id']);
+                $productName = $product ? $product->name : 'Product Deleted';
+                $items[] = $productName . ' (' . ($item['quantity'] ?? 0) . 'x)';
+            }
+        }
+        
         return [
-            $order->order_number,
-            $order->created_at->format('d/m/Y H:i'),
-            $order->user->name,
-            $order->items->sum('quantity'),
-            $order->subtotal,
-            $order->tax,
-            $order->total,
-            strtoupper($order->payment_method)
+            $transaction->transaction_number,
+            $transaction->created_at->format('d/m/Y H:i'),
+            $transaction->user->name,
+            implode(', ', $items),
+            $transaction->total_amount,
+            strtoupper($transaction->payment_method)
         ];
     }
 }

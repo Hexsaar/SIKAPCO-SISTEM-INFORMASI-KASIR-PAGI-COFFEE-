@@ -86,6 +86,7 @@
                         <div id="editDescriptionError" class="text-red-500 text-xs mt-1 hidden"></div>
                     </div>
 
+                    
                     <!-- Submit Button -->
                     <div class="flex gap-3 pt-4">
                         <button type="button" onclick="closeEditModal()" 

@@ -70,8 +70,13 @@ class UserProfileController extends Controller
                 
                 // Delete old photo if exists
                 if ($user->profile_photo) {
-                    // Extract filename from full path
-                    $oldPhotoPath = str_replace(Storage::url(''), '', $user->profile_photo);
+                    $oldPhotoPath = $user->profile_photo;
+                    if (str_starts_with($oldPhotoPath, '/storage/')) {
+                        $oldPhotoPath = substr($oldPhotoPath, strlen('/storage/'));
+                    }
+                    if (str_contains($oldPhotoPath, Storage::url(''))) {
+                        $oldPhotoPath = str_replace(Storage::url(''), '', $oldPhotoPath);
+                    }
                     Storage::disk('public')->delete($oldPhotoPath);
                 }
 

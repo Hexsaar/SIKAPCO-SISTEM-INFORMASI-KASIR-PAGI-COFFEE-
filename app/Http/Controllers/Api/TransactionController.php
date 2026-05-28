@@ -17,7 +17,8 @@ class TransactionController extends Controller
             $items[] = [
                 'id' => $item['product_id'],
                 'quantity' => $item['quantity'],
-                'price' => $item['price']
+                'price' => $item['price'],
+                'discount' => $item['discount'] ?? 0
             ];
             $totalPayment += $item['price'] * $item['quantity'];
         }
@@ -28,7 +29,9 @@ class TransactionController extends Controller
             'payment' => $request->cash_received ?? $totalPayment,
             'payment_method' => strtolower($request->payment_method),
             'customer_name' => 'Guest',
-            'notes' => $request->notes
+            'notes' => $request->notes,
+            'global_discount' => $request->global_discount ?? 0,
+            'tax_percentage' => $request->tax_percentage ?? 0
         ]);
 
         // Use KasirController checkout logic for synchronization

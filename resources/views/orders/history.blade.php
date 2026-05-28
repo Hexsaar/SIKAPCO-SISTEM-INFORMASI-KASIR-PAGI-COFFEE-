@@ -4,6 +4,12 @@
 
 @section('content')
 <div class="space-y-6">
+    <!-- Header Section -->
+    <div>
+        <h1 class="text-2xl font-bold text-gray-800">History Transaksi</h1>
+        <p class="text-gray-600">Lihat semua riwayat pesanan</p>
+    </div>
+
     <!-- Filter Section -->
     <div class="bg-white rounded-lg shadow p-6">
         <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -49,7 +55,6 @@
                             <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">STATUS</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">TOTAL</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">WAKTU</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">AKSI</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -83,26 +88,10 @@
                                 <div class="text-sm text-gray-600">{{ $transaction->created_at->format('H:i') }}</div>
                                 <div class="text-xs text-gray-400">{{ $transaction->created_at->format('d/m/Y') }}</div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <a href="javascript:alert('Link clicked! ID: {{ $transaction->id }}');" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center gap-1 inline-block mr-1">
-                                    <i class="fas fa-link"></i>
-                                    Link
-                                </a>
-
-                                <button type="button" onclick="alert('Button clicked! ID: {{ $transaction->id }}');" class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center gap-1 mr-1">
-                                    <i class="fas fa-mouse"></i>
-                                    Button
-                                </button>
-
-                                <button type="button" class="print-receipt-btn bg-[#4F2E22] hover:bg-[#3f251b] text-white px-2 py-1 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center gap-1" onclick="testSimplePrint('{{ $transaction->id }}', '{{ $transaction->transaction_number }}'); return false;">
-                                    <i class="fas fa-print"></i>
-                                    Cetak
-                                </button>
-                            </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center">
+                            <td colspan="5" class="px-6 py-12 text-center">
                                 <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
@@ -204,6 +193,47 @@ function printHistoryReceipt(transaction) {
         console.log('Formatted date:', dateStr, timeStr);
     
     // Build receipt HTML with new design
+    let itemsHTML = '';
+    transaction.items.forEach(item => {
+      const originalItemTotal = item.price * item.quantity;
+      const discountPercent = item.discount || 0;
+      const discountAmount = originalItemTotal * (discountPercent/100);
+      const discountedItemTotal = originalItemTotal - discountAmount;
+      
+      itemsHTML += `
+        <tr>
+          <td style="font-size: 8pt; width: 60%;">${item.quantity}x ${item.name}</td>
+          <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(discountedItemTotal).toLocaleString('id-ID')}</td>
+        </tr>
+      `;
+      
+      if (discountPercent > 0) {
+        itemsHTML += `
+          <tr>
+            <td style="font-size: 7pt; color: #666;">&nbsp;&nbsp;Disc ${discountPercent}%</td>
+            <td style="font-size: 7pt; color: #666; text-align: right;">-${parseInt(discountAmount).toLocaleString('id-ID')}</td>
+          </tr>
+        `;
+      }
+    });
+
+    let notesHTML = '';
+    if (transaction.notes && transaction.notes.trim()) {
+      notesHTML = `
+        <div class="divider">--------------------------------</div>
+        <table>
+          <tr>
+            <td colspan="2" style="font-size: 8pt; font-style: italic;">${transaction.notes}</td>
+          </tr>
+        </table>
+      `;
+    }
+
+    const subtotal = parseInt(transaction.subtotal) || 0;
+    const discount = parseInt(transaction.discount_amount) || 0;
+    const tax = parseInt(transaction.tax_amount) || 0;
+    const taxPercent = (subtotal - discount) > 0 ? Math.round((tax / (subtotal - discount)) * 100) : 11;
+
     const printHTML = `
       <!DOCTYPE html>
       <html lang="id">
@@ -264,12 +294,7 @@ function printHistoryReceipt(transaction) {
         <div class="divider">--------------------------------</div>
 
         <table>
-          ${transaction.items.map(item => `
-            <tr>
-              <td style="font-size: 8pt; width: 60%;">${item.quantity}x ${item.name}</td>
-              <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(item.subtotal).toLocaleString('id-ID')}</td>
-            </tr>
-          `).join('')}
+          ${itemsHTML}
         </table>
 
         <div class="divider">--------------------------------</div>
@@ -277,18 +302,18 @@ function printHistoryReceipt(transaction) {
         <table>
           <tr>
             <td style="font-size: 8pt; width: 60%;">SUBTOTAL</td>
-            <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(transaction.subtotal).toLocaleString('id-ID')}</td>
+            <td style="font-size: 8pt; width: 40%; text-align: right;">${subtotal.toLocaleString('id-ID')}</td>
           </tr>
-          ${transaction.discount_amount > 0 ? `
+          ${discount > 0 ? `
           <tr>
             <td style="font-size: 8pt; width: 60%;">DISKON</td>
-            <td style="font-size: 8pt; width: 40%; text-align: right;">-${parseInt(transaction.discount_amount).toLocaleString('id-ID')}</td>
+            <td style="font-size: 8pt; width: 40%; text-align: right;">-${discount.toLocaleString('id-ID')}</td>
           </tr>
           ` : ''}
-          ${transaction.tax_amount > 0 ? `
+          ${tax > 0 ? `
           <tr>
-            <td style="font-size: 8pt; width: 60%;">PAJAK</td>
-            <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(transaction.tax_amount).toLocaleString('id-ID')}</td>
+            <td style="font-size: 8pt; width: 60%;">PAJAK (${taxPercent}%)</td>
+            <td style="font-size: 8pt; width: 40%; text-align: right;">${tax.toLocaleString('id-ID')}</td>
           </tr>
           ` : ''}
           <tr>
@@ -297,20 +322,29 @@ function printHistoryReceipt(transaction) {
           </tr>
         </table>
 
+        ${notesHTML}
+
         <div class="divider">--------------------------------</div>
 
         <table>
           <tr>
-            <td style="font-size: 8pt; width: 60%;">${transaction.payment_method.toUpperCase()}</td>
-            <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(transaction.total_amount).toLocaleString('id-ID')}</td>
+            <td style="font-size: 8pt; width: 60%;">${transaction.payment_method.toUpperCase() === 'CASH' ? 'TUNAI' : transaction.payment_method.toUpperCase()}</td>
+            <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(transaction.payment_method.toUpperCase() === 'CASH' && transaction.cash_received ? transaction.cash_received : transaction.total_amount).toLocaleString('id-ID')}</td>
           </tr>
-          ${transaction.cash_received ? `
+          ${transaction.payment_method.toUpperCase() === 'CASH' && transaction.cash_received ? `
           <tr>
             <td style="font-size: 8pt; width: 60%;">KEMBALI</td>
             <td style="font-size: 8pt; width: 40%; text-align: right;">${parseInt(transaction.cash_received - transaction.total_amount).toLocaleString('id-ID')}</td>
           </tr>
           ` : ''}
         </table>
+
+        ${discount > 0 ? `
+        <div class="divider">--------------------------------</div>
+        <div style="font-size: 7pt; text-align: center;">
+          * Hemat hari ini: Rp${discount.toLocaleString('id-ID')} *
+        </div>
+        ` : ''}
 
         <div class="divider">--------------------------------</div>
         <div style="margin-top: 5mm; font-size: 7pt; text-align: center;">

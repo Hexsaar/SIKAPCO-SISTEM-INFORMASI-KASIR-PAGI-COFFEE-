@@ -1,626 +1,4 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kasir - Menu Kopi</title>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-    <style>
-      /* Kategori style dengan hidden radio dan border coklat saat dipilih */
-      .category-radio {
-        position: absolute;
-        opacity: 0;
-        width: 0;
-        height: 0;
-        pointer-events: none;
-      }
-      
-      /* Active state untuk sidebar */
-      .sidebar-active {
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        border-left: 4px solid #fff;
-        font-weight: 700;
-      }
-      
-      .sidebar-active svg {
-        filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
-      }
-      
-      .category-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        justify-content: flex-start;
-        align-items: center;
-      }
-      
-      .category-item input:checked + label {
-        border: 2px solid #4F2E22 !important;
-        box-shadow: 0 0 0 1px rgba(79, 46, 34, 0.2);
-      }
-      
-      .category-item label {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        background: white;
-        border-radius: 1rem;
-        padding: 0.75rem 1.25rem;
-        border: 2px solid transparent;
-        transition: all 0.15s ease;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-        cursor: pointer;
-      }
-      
-      .category-item label:hover {
-        border-color: #e5d6cc;
-      }
-      
-      /* Scroll order untuk checkout */
-      .scroll-order {
-        max-height: 240px;
-        overflow-y: auto;
-        scrollbar-width: thin;
-      }
-      @media (min-width: 768px) {
-        .scroll-order {
-          max-height: 280px;
-        }
-      }
-      .scroll-order::-webkit-scrollbar {
-        width: 5px;
-      }
-      .scroll-order::-webkit-scrollbar-track {
-        background: #f1f1f1;
-      }
-      .scroll-order::-webkit-scrollbar-thumb {
-        background: #d4c4b6;
-        border-radius: 20px;
-      }
-      
-      /* Badge untuk notifikasi cart */
-      .cart-badge {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background-color: #ef4444;
-        color: white;
-        font-size: 10px;
-        font-weight: bold;
-        min-width: 18px;
-        height: 18px;
-        border-radius: 999px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 4px;
-        border: 2px solid #4F2E22;
-      }
-      
-      /* Style untuk tombol nominal */
-      .nominal-btn {
-        background-color: #f3f4f6;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.75rem;
-        padding: 0.5rem 0.75rem;
-        font-weight: 600;
-        color: #4F2E22;
-        transition: all 0.2s;
-      }
-      .nominal-btn:hover {
-        background-color: #4F2E22;
-        color: white;
-        border-color: #4F2E22;
-      }
-      
-      /* Loading Animation */
-      .stock-update-loading {
-        position: relative;
-        overflow: hidden;
-      }
-      
-      .stock-update-loading::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(79, 46, 34, 0.2), transparent);
-        animation: loading-shimmer 1.5s infinite;
-      }
-      
-      @keyframes loading-shimmer {
-        0% {
-          left: -100%;
-        }
-        100% {
-          left: 100%;
-        }
-      }
-      
-      /* Sync indicator */
-      .sync-indicator {
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        background: #4F2E22;
-        color: white;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        z-index: 1000;
-        opacity: 0;
-        transform: translateY(-20px);
-        transition: all 0.3s ease;
-      }
-      
-      .sync-indicator.show {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      
-      .sync-indicator.updating {
-        background: #f59e0b;
-      }
-      
-      .sync-indicator.success {
-        background: #10b981;
-      }
-      
-      .sync-spinner {
-        width: 14px;
-        height: 14px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top: 2px solid white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      
-      /* Print styles - only show receipt when printing */
-      @media print {
-        body * {
-          visibility: hidden;
-        }
-        .print-receipt, .print-receipt * {
-          visibility: visible;
-        }
-        .print-receipt {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
-          background: white;
-          box-shadow: none;
-          border: none;
-          padding: 20px;
-        }
-        .print-receipt > div:last-child {
-          display: none !important;
-        }
-      }
-      
-      /* Custom scrollbar untuk cart modal */
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 8px;
-      }
-      
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: #f8f9fa;
-        border-radius: 10px;
-        border: 1px solid #e9ecef;
-      }
-      
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: linear-gradient(to bottom, #4F2E22, #3f251b);
-        border-radius: 10px;
-        border: 2px solid transparent;
-        background-clip: content-box;
-      }
-      
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(to bottom, #3f251b, #2f1a15);
-        background-clip: content-box;
-      }
-      
-      .custom-scrollbar::-webkit-scrollbar-corner {
-        background: #f8f9fa;
-      }
-      
-      /* Modal cart animation */
-      @keyframes cartModalSlideIn {
-        from {
-          opacity: 0;
-          transform: translate(-50%, -50%) scale(0.8) translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translate(-50%, -50%) scale(1) translateY(0);
-        }
-      }
-      
-      #cart-modal-content {
-        animation: cartModalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      }
-      
-      /* Settings modal animation */
-      @keyframes settingsModalSlideIn {
-        from {
-          opacity: 0;
-          transform: translate(-50%, -50%) scale(0.8) translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translate(-50%, -50%) scale(1) translateY(0);
-        }
-      }
-      
-      #settings-modal-content {
-        animation: settingsModalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      }
-      
-      /* History modal animation */
-      @keyframes historyModalSlideIn {
-        from {
-          opacity: 0;
-          transform: translate(-50%, -50%) scale(0.8) translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translate(-50%, -50%) scale(1) translateY(0);
-        }
-      }
-      
-      #history-modal-content {
-        animation: historyModalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      }
-      
-      /* Button animations */
-      .btn-scale {
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      
-      .btn-scale:hover {
-        transform: scale(1.05);
-      }
-      
-      .btn-scale:active {
-        transform: scale(0.95);
-      }
-      
-      /* Menu card specific fixes */
-      .menu-card {
-        transform: translateZ(0);
-        backface-visibility: hidden;
-        -webkit-font-smoothing: antialiased;
-      }
-      
-      .menu-card:hover {
-        transform: translateY(-4px) translateZ(0);
-      }
-      
-      .menu-card:active {
-        transform: scale(0.95) translateZ(0);
-      }
-    </style>
-</head>
-<body class="overflow-x-hidden">
-      
-<!-- Sync Indicator -->
-<div id="syncIndicator" class="sync-indicator">
-  <div class="sync-spinner"></div>
-  <span id="syncText">Updating stock...</span>
-</div>
 
-<nav class="bg-neutral-secondary-soft fixed w-full z-20 top-0 start-0 border-b border-default" style="background-color: #4F2E22;">
-    <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto px-3 md:px-4 py-2 md:py-2.5">
-        <div class="flex items-center gap-2 md:gap-3">
-            <button id="hamburger-btn" data-collapse-toggle="navbar-hamburger" type="button" class="inline-flex items-center p-1.5 md:p-2 w-9 h-9 md:w-10 md:h-10 justify-center text-sm text-white rounded-base hover:bg-neutral-tertiary hover:text-heading focus:outline-none focus:ring-2 focus:ring-neutral-tertiary" aria-controls="navbar-hamburger" aria-expanded="false">
-                <span class="sr-only">Open main menu</span>
-                <svg class="w-5 h-5 md:w-6 md:h-6" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h14"/></svg>
-            </button>
-            <span class="text-white font-bold text-base md:text-lg">pagicoffee.id</span>
-            <svg class="w-7 h-7 md:w-8 md:h-8 text-yellow-300 ml-1 md:ml-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-        </div>
-        <a href="#" class="flex items-center space-x-2 md:space-x-3 rtl:space-x-reverse">
-            <span class="self-center text-base md:text-xl text-white font-semibold whitespace-nowrap">{{ auth()->user()->name }}</span>
-            <img src="https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=40&h=40&fit=crop" class="h-7 w-7 md:h-8 md:w-8 rounded-full" alt="Barista" />
-        </a>
-    </div>
-</nav>
-
-<!-- Sidebar -->
-<aside id="sidebar" class="fixed left-0 top-0 w-60 md:w-64 h-screen bg-neutral-secondary-soft transform -translate-x-full transition-transform duration-300 z-30" style="background-color: #4F2E22;">
-    <div class="p-5 md:p-6">
-        <!-- Logo & Close Button -->
-        <div class="flex items-center justify-between mb-6 md:mb-8">
-            <div class="flex items-center gap-2">
-                <svg class="w-8 h-8 text-yellow-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="12" r="5"/>
-                    <line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                <span class="text-white font-bold">Menu</span>
-            </div>
-            <button id="close-sidebar" class="text-white hover:bg-neutral-tertiary p-2 rounded">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </div>
-
-        <!-- Menu Items -->
-        <ul class="space-y-3 md:space-y-4">
-            <li>
-                <a href="#" class="flex items-center gap-3 text-white sidebar-active p-2.5 md:p-3 rounded transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-3m2-2l6-5 6 5m2 2l2 3m-2-3v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7"></path></svg>
-                    <span class="font-bold text-sm md:text-base">Menu</span>
-                </a>
-            </li>
-            <li>
-                <a href="#" id="history-sidebar-link" class="flex items-center gap-3 text-white hover:bg-neutral-tertiary p-2.5 md:p-3 rounded transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span class="font-bold text-sm md:text-base">History</span>
-                </a>
-            </li>
-            <li>
-                <a href="#" id="settings-sidebar-link" class="flex items-center gap-3 text-white hover:bg-neutral-tertiary p-2.5 md:p-3 rounded transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
-                    <span class="font-bold text-sm md:text-base">Settings</span>
-                </a>
-            </li>
-            <li>
-                <a href="#" id="cart-sidebar-link" class="flex items-center gap-3 text-white hover:bg-neutral-tertiary p-2.5 md:p-3 rounded transition relative">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    <span class="font-bold text-sm md:text-base">Cart</span>
-                    <!-- Badge notifikasi akan muncul di sini -->
-                    <span id="cart-badge" class="cart-badge hidden">0</span>
-                </a>
-            </li>
-        </ul>
-
-        <!-- Logout Button -->
-        <div class="absolute bottom-5 md:bottom-6 left-5 md:left-6 right-5 md:right-6">
-            <div class="border-t border-white mb-3 md:mb-4"></div>
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-                <button type="submit" class="w-full text-white font-semibold py-2 px-3 md:px-4 rounded transition flex items-center justify-center gap-2 hover:opacity-80 text-sm md:text-base">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    Logout
-                </button>
-            </form>
-        </div>
-    </div>
-</aside>
-
-<section class="bg-slate-50 text-slate-900 p-4 md:p-6 lg:p-8 mt-16 min-h-screen">
-  <!-- Main container 2 kolom dengan tinggi yang sama -->
-  <div class="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-6 lg:gap-8" style="min-height: calc(100vh - 120px);">
-    
-    <!-- KIRI: Area Menu -->
-    <div class="md:col-span-7 lg:col-span-8 flex flex-col" style="height: calc(100vh - 120px);">
-      <!-- Header All menu + Search -->
-      <div class="mb-4 md:mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0">
-        <!-- Dropdown Kategori -->
-        <div class="relative">
-          <button id="category-dropdown-btn" class="text-lg md:text-[22px] font-bold px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 flex items-center gap-2 min-w-[150px] justify-between">
-            <span id="selected-category-text">All Menu</span>
-            <svg class="w-4 h-4 transition-transform" id="dropdown-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-          </button>
-          
-          <!-- Dropdown Menu -->
-          <div id="category-dropdown" class="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 hidden">
-            <div class="py-1">
-              <button class="category-dropdown-item w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-3" data-category="all">
-                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                </svg>
-                <span>All Menu</span>
-              </button>
-              <button class="category-dropdown-item w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-3" data-category="8">
-                <div class="w-5 h-5 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#FFD700" stroke="#FFD700" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                </div>
-                <span>Best Seller</span>
-              </button>
-              <button class="category-dropdown-item w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-3" data-category="1">
-                <div class="w-5 h-5 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4F2E22" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2v-6a2 2 0 012-2h8z"/>
-                  </svg>
-                </div>
-                <span>Coffee</span>
-              </button>
-              <button class="category-dropdown-item w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-3" data-category="2">
-                <div class="w-5 h-5 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4F2E22" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                </div>
-                <span>Non Coffee</span>
-              </button>
-              <button class="category-dropdown-item w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-3" data-category="6">
-                <div class="w-5 h-5 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4F2E22" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                  </svg>
-                </div>
-                <span>Coffee Milk</span>
-              </button>
-              <button class="category-dropdown-item w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-3" data-category="4">
-                <div class="w-5 h-5 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4F2E22" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                  </svg>
-                </div>
-                <span>Snack</span>
-              </button>
-              <button class="category-dropdown-item w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-3" data-category="7">
-                <div class="w-5 h-5 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4F2E22" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                </div>
-                <span>Bottle</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      <div class="relative w-full sm:w-64 md:w-72">
-        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linecap="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-        </svg>
-        </div>
-        <input type="text" id="searchInput" placeholder="Cari disini...." 
-          class="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-white/90 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4F2E22]/20">
-      </div>
-      </div>
-
-      <!-- GRID MENU - DYNAMIC FROM DATABASE -->
-      <div class="flex-1 overflow-y-auto pr-2">
-        <section class="grid gap-3 md:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4">
-        @foreach($products as $product)
-        <button class="menu-card group flex flex-col items-center rounded-xl md:rounded-2xl border-2 border-slate-200 bg-white p-2.5 md:p-3 text-center shadow-sm transition-all duration-300 hover:border-[#4F2E22] hover:shadow-xl active:border-[#4F2E22] active:shadow-xl isolate
-                @if(!$product->is_available || $product->stock <= 0) opacity-50 pointer-events-none grayscale @endif" 
-                data-product-id="{{ $product->id }}" 
-                data-product-name="{{ $product->name }}" 
-                data-product-price="{{ $product->price }}"
-                data-product-stock="{{ $product->stock }}"
-                data-product-available="{{ $product->is_available ? 'true' : 'false' }}"
-                data-category-id="{{ $product->category_id }}"
-                data-product="{{ json_encode(['id' => $product->id, 'name' => $product->name, 'price' => $product->price, 'stock' => $product->stock, 'is_available' => $product->is_available]) }}">
-          <img src="{{ $product->image ? asset('uploads/' . $product->image) : 'https://via.placeholder.com/150' }}" 
-               alt="{{ $product->name }}" 
-               class="h-[90px] md:h-[110px] w-[75px] md:w-[90px] rounded-lg md:rounded-[10px] border border-slate-200 object-cover transition-transform duration-300 group-hover:scale-110" />
-          <div class="mt-1.5 md:mt-2 text-xs md:text-[13px] font-semibold">{{ $product->name }}</div>
-          <div class="mb-1 text-[11px] md:text-[12px] font-bold text-amber-700">{{ number_format($product->price/1000, 0) }}K</div>
-          <div class="rounded-full border 
-                @if(!$product->is_available || $product->stock <= 0) 
-                    border-red-200 bg-red-50 text-red-600 font-semibold 
-                @elseif($product->stock <= 5) 
-                    border-orange-200 bg-orange-50 text-orange-600 
-                @else 
-                    border-dashed border-slate-200 text-slate-500 
-                @endif 
-                px-2 py-0.5 md:py-1 text-[10px] md:text-[11px]">
-            @if(!$product->is_available)
-                Tidak Tersedia
-            @elseif($product->stock <= 0)
-                Stok Habis
-            @else
-                Stok tersisa {{ $product->stock }}
-            @endif
-          </div>
-        </button>
-        @endforeach
-        </section>
-      </div>
-    </div>
-
-  <!-- ================= WRAPPER ================= -->
-  <div class="md:col-span-5 lg:col-span-4 bg-white rounded-2xl shadow-xl border border-slate-300 flex flex-col p-4 relative" style="height: calc(100vh - 120px);">
-
-    <!-- ================= HEADER ================= -->
-    <div class="flex-shrink-0">
-      <h1 class="text-2xl font-bold text-center pb-3 border-b border-slate-200">
-        Checkout
-      </h1>
-      <!-- Active Order Info (Meja & Pelanggan) -->
-      <div id="active-order-info" class="mt-2 text-center py-1.5 px-3 bg-amber-50 text-amber-800 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-amber-200 hidden">
-        <span class="material-symbols-outlined text-[16px]">table_restaurant</span>
-        <span>Meja: <span id="active-table-number">-</span></span>
-        <span>|</span>
-        <span class="material-symbols-outlined text-[16px]">person</span>
-        <span>Pelanggan: <span id="active-customer-name">-</span></span>
-        <button id="clear-active-info-btn" class="ml-1 text-amber-600 hover:text-amber-900 focus:outline-none flex items-center" title="Hapus info meja/pelanggan">
-          <span class="material-symbols-outlined text-[14px]">close</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- ================= LIST ITEM ================= -->
-    <!-- Ini akan diisi oleh JavaScript, kosong di awal -->
-    <div class="flex-1 overflow-y-auto space-y-3 pr-2 scroll-order pb-44 mt-4" id="order-list-container">
-      <!-- Konten akan dirender oleh JavaScript -->
-    </div>
-
-    <!-- ================= STICKY FOOTER ================= -->
-    <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 rounded-b-2xl shadow-lg z-10">
-      <!-- Catatan -->
-      <div class="mb-3">
-        <label class="block text-sm text-slate-600 mb-1">Catatan</label>
-        <textarea id="order-notes" rows="2" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4F2E22]/20" placeholder="Tambah catatan pesanan..."></textarea>
-      </div>
-
-      <!-- Diskon dan Pajak -->
-      <div class="space-y-2 mb-3">
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-slate-600 w-16">Diskon</label>
-          <input type="number" id="global-discount-input" min="0" max="100" step="0.1" value="0" 
-                 class="w-20 px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#4F2E22]/20">
-          <span class="text-xs text-gray-500">%</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-slate-600 w-16">Pajak</label>
-          <input type="number" id="tax-input" min="0" max="100" step="0.1" value="0" 
-                 class="w-20 px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#4F2E22]/20">
-          <span class="text-xs text-gray-500">%</span>
-        </div>
-      </div>
-
-      <!-- Total -->
-      <div class="flex justify-between font-bold border-t pt-2 mb-3">
-        <span>Total</span>
-        <span class="text-[#4F2E22]" id="total-val">Rp 0</span>
-      </div>
-
-      <!-- ================= BUTTON PAY ================= -->
-      <button class="w-full bg-[#4F2E22] hover:bg-[#3f251b] text-white font-bold py-3 rounded-xl text-lg shadow-md transition active:scale-95 mb-3" id="pay-btn">
-        Bayar
-      </button>
-
-      <!-- ================= BUTTON ================= -->
-      <div class="flex gap-3">
-        <button id="cancel-btn" class="flex-1 border-2 border-red-500 text-red-500 font-bold py-3 rounded-full text-lg transition hover:bg-red-50 active:scale-95">
-          CANCEL ORDER
-        </button>
-        <button id="hold-btn" class="flex-1 border-2 border-green-500 text-green-500 font-bold py-3 rounded-full text-lg transition hover:bg-green-50 active:scale-95">
-          HOLD ORDER
-        </button>
-      </div>
-    </div>
-
-  </div>
-  <!-- ================= END WRAPPER ================= -->
-
-</div>
-
-<script>
   // ==================== FUNGSIONALITAS JAVASCRIPT ====================
   
   // Data struktur order
@@ -631,38 +9,6 @@
   let globalDiscount = 0; // Global discount percentage
   let orderNotes = ''; // Order notes
   let orderCounter = 1; // Counter for sequential order ID
-  let currentTableNumber = ''; // Current active table number (restored or new)
-  let currentCustomerName = ''; // Current active customer name (restored or new)
-
-  // Fungsi untuk update UI info meja & pelanggan aktif
-  function updateActiveOrderInfoUI() {
-    const infoEl = document.getElementById('active-order-info');
-    const tableEl = document.getElementById('active-table-number');
-    const nameEl = document.getElementById('active-customer-name');
-    
-    if (infoEl && tableEl && nameEl) {
-      if (currentTableNumber || currentCustomerName) {
-        tableEl.textContent = currentTableNumber || '-';
-        nameEl.textContent = currentCustomerName || '-';
-        infoEl.classList.remove('hidden');
-      } else {
-        infoEl.classList.add('hidden');
-      }
-    }
-  }
-
-  // Event listener untuk hapus info meja/pelanggan
-  document.addEventListener('DOMContentLoaded', () => {
-    const clearActiveInfoBtn = document.getElementById('clear-active-info-btn');
-    if (clearActiveInfoBtn) {
-      clearActiveInfoBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        currentTableNumber = '';
-        currentCustomerName = '';
-        updateActiveOrderInfoUI();
-      });
-    }
-  });
   
   // Get total elements
   const subtotalTextEl = document.getElementById('subtotal-val');
@@ -1443,110 +789,36 @@
       modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
       
       // Simple HTML without template literals
-      modal.innerHTML = '<div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100 opacity-100">' +
-        '<div class="bg-gradient-to-r from-[#4F2E22] to-[#3f251b] p-6 rounded-t-2xl">' +
-        '<h2 class="text-xl font-bold text-center text-white flex items-center justify-center gap-2">' +
-        '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>' +
-        '</svg>' +
-        'Pembayaran Tunai' +
-        '</h2>' +
+      modal.innerHTML = '<div class="bg-white rounded-2xl p-6 w-96 shadow-2xl">' +
+        '<h2 class="text-xl font-bold text-center mb-4">Pembayaran Tunai</h2>' +
+        '<div class="mb-4 p-4 bg-slate-50 rounded-xl">' +
+        '<div class="flex justify-between mb-2">' +
+        '<span class="text-slate-600">Total</span>' +
+        '<span class="font-bold text-lg">Rp ' + total.toLocaleString('id-ID') + '</span>' +
         '</div>' +
-        '<div class="p-6">' +
-        '<div class="mb-6 p-4 bg-gradient-to-br from-[#4F2E22]/5 to-[#3f251b]/5 rounded-2xl border border-[#4F2E22]/10">' +
-        '<div class="flex justify-between mb-4">' +
-        '<span class="text-gray-600 font-medium">Total Pembayaran</span>' +
-        '<span class="font-bold text-lg text-[#4F2E22]">Rp ' + total.toLocaleString('id-ID') + '</span>' +
+        '<div class="mb-3">' +
+        '<label class="block text-sm text-slate-600 mb-1">Uang diterima</label>' +
+        '<input type="text" id="cash-amount" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-lg font-bold" placeholder="Rp 0">' +
         '</div>' +
-        '<div class="mb-4">' +
-        '<label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">' +
-        '<svg class="w-4 h-4 text-[#4F2E22]" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>' +
-        '</svg>' +
-        'Uang Diterima *' +
-        '</label>' +
-        '<div class="relative">' +
-        '<span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#4F2E22] font-bold text-lg">Rp</span>' +
-        '<input type="text" id="cash-amount" class="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl text-lg font-bold focus:ring-2 focus:ring-[#4F2E22]/20 focus:border-[#4F2E22] transition-all duration-200 hover:border-gray-300" placeholder="0" autocomplete="off">' +
-        '</div>' +
-        '<p class="text-xs text-gray-500 mt-2">Masukkan nominal uang yang diterima</p>' +
-        '</div>' +
-        '<div class="flex justify-between items-center text-lg border-t border-gray-200 pt-4">' +
-        '<span class="text-gray-600 font-medium flex items-center gap-2">' +
-        '<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V2"/>' +
-        '</svg>' +
-        'Uang Kembali' +
-        '</span>' +
+        '<div class="flex justify-between text-lg border-t pt-3">' +
+        '<span class="text-slate-600">Uang kembali</span>' +
         '<span id="change-amount" class="font-bold text-green-600">Rp 0</span>' +
         '</div>' +
         '</div>' +
         '<div class="flex gap-3">' +
-        '<button class="flex-1 bg-[#4F2E22] hover:bg-[#3f251b] text-white font-bold py-3 rounded-xl transition-all duration-200 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-[#4F2E22] btn-scale" id="continue-cash-btn" disabled>' +
-        '<svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>' +
-        '</svg>' +
-        'Bayar' +
-        '</button>' +
-        '<button class="flex-1 border-2 border-gray-300 hover:bg-gray-50 text-gray-600 font-bold py-3 rounded-xl transition-all duration-200 hover:shadow-md active:scale-95 btn-scale" id="cancel-cash-btn">' +
-        'Batal' +
-        '</button>' +
-        '</div>' +
+        '<button class="flex-1 bg-blue-500 text-white font-bold py-3 rounded-xl" id="continue-cash-btn">Bayar</button>' +
+        '<button class="flex-1 border-2 border-gray-300 text-gray-600 font-bold py-3 rounded-xl" id="cancel-cash-btn">Batal</button>' +
         '</div>' +
         '</div>';
     
       console.log('Debug - Appending cash payment modal to body');
       document.body.appendChild(modal);
       
-      // Event handlers
-      const cashInput = document.getElementById('cash-amount');
-      const continueBtn = document.getElementById('continue-cash-btn');
-      const changeAmount = document.getElementById('change-amount');
-      
-      // Format input as Rupiah
-      cashInput.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/[^0-9]/g, '');
-        
-        if (value === '') {
-          e.target.value = '';
-          changeAmount.textContent = 'Rp 0';
-          continueBtn.disabled = true;
-          return;
-        }
-        
-        // Format with thousand separators
-        let formattedValue = parseInt(value).toLocaleString('id-ID');
-        e.target.value = formattedValue;
-        
-        // Calculate change
-        const receivedAmount = parseInt(value);
-        const change = receivedAmount - total;
-        
-        if (change >= 0) {
-          changeAmount.textContent = 'Rp ' + change.toLocaleString('id-ID');
-          changeAmount.className = 'font-bold text-green-600';
-        } else {
-          changeAmount.textContent = 'Rp ' + Math.abs(change).toLocaleString('id-ID');
-          changeAmount.className = 'font-bold text-red-600';
-        }
-        
-        // Enable/disable pay button
-        continueBtn.disabled = receivedAmount < total || receivedAmount === 0;
-      });
-      
-      // Prevent non-numeric input
-      cashInput.addEventListener('keypress', function(e) {
-        const char = String.fromCharCode(e.which);
-        if (!/[0-9]/.test(char)) {
-          e.preventDefault();
-        }
-      });
-      
-      continueBtn.onclick = function() {
-        const receivedAmount = parseInt(cashInput.value.replace(/[^0-9]/g, ''));
-        console.log('Debug - Continue button clicked, amount:', receivedAmount);
+      // Simple event handlers
+      document.getElementById('continue-cash-btn').onclick = function() {
+        console.log('Debug - Continue button clicked');
         modal.remove();
-        printReceipt('CASH', receivedAmount, null);
+        printReceipt('CASH', total, null);
       };
       
       document.getElementById('cancel-cash-btn').onclick = function() {
@@ -1747,9 +1019,6 @@
         orders = [];
         globalDiscount = 0;
         orderNotes = '';
-        currentTableNumber = '';
-        currentCustomerName = '';
-        updateActiveOrderInfoUI();
         // orderCounter tidak di-reset agar terus berurutan
         
         const orderNotesInput = document.getElementById('order-notes');
@@ -2057,165 +1326,12 @@
       }
       if (confirm('Batalkan seluruh pesanan?')) {
         orders = [];
-        globalDiscount = 0;
-        orderNotes = '';
-        currentTableNumber = '';
-        currentCustomerName = '';
-        updateActiveOrderInfoUI();
-        
-        const orderNotesInput = document.getElementById('order-notes');
-        if (orderNotesInput) orderNotesInput.value = '';
-        
-        const discountInput = document.getElementById('global-discount-input');
-        if (discountInput) discountInput.value = 0;
-        
-        const taxInput = document.getElementById('tax-input');
-        if (taxInput) taxInput.value = 0;
-        
         renderOrderList();
         updateTotal();
       }
     });
   }
   
-  // Function to show hold order modal with optional fields
-  function showHoldOrderModal() {
-    // Check existing modal
-    if (document.getElementById('hold-order-modal')) return;
-
-    const modal = document.createElement('div');
-    modal.id = 'hold-order-modal';
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-
-    modal.innerHTML = `
-      <div class="bg-white rounded-2xl p-6 w-[400px] shadow-2xl">
-        <h2 class="text-xl font-bold mb-4 text-[#4F2E22]">
-          <span class="material-symbols-outlined align-middle mr-2">pause_circle</span>
-          Hold Order
-        </h2>
-        <p class="text-sm text-gray-600 mb-4">Masukkan informasi opsional untuk pesanan ini</p>
-        
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Meja <span class="text-gray-400 text-xs">(Opsional)</span></label>
-            <input 
-              type="text" 
-              id="hold-table-number" 
-              class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F2E22]/20 focus:border-[#4F2E22]"
-              placeholder="Contoh: 1"
-              value="${currentTableNumber}"
-            >
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Pembeli <span class="text-gray-400 text-xs">(Opsional)</span></label>
-            <input 
-              type="text" 
-              id="hold-customer-name" 
-              class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F2E22]/20 focus:border-[#4F2E22]"
-              placeholder="Nama pembeli"
-              value="${currentCustomerName}"
-            >
-          </div>
-        </div>
-        
-        <div class="flex gap-3 mt-6">
-          <button id="cancel-hold-btn" class="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-            Batal
-          </button>
-          <button id="confirm-hold-btn" class="flex-1 px-4 py-3 bg-[#4F2E22] text-white rounded-lg hover:bg-[#3f251b] font-medium transition-colors">
-            Hold Order
-          </button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // Focus on first input
-    setTimeout(() => {
-      document.getElementById('hold-table-number').focus();
-    }, 100);
-
-    // Confirm hold button
-    document.getElementById('confirm-hold-btn').addEventListener('click', () => {
-      const tableNumber = document.getElementById('hold-table-number').value.trim() || '';
-      const customerName = document.getElementById('hold-customer-name').value.trim() || '';
-      
-      // Proceed with hold order
-      processHoldOrder(tableNumber, customerName);
-      modal.remove();
-    });
-
-    // Cancel button
-    document.getElementById('cancel-hold-btn').addEventListener('click', () => {
-      modal.remove();
-    });
-
-    // Close on outside click
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
-    });
-
-    // Enter key to confirm
-    document.getElementById('hold-customer-name').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        document.getElementById('confirm-hold-btn').click();
-      }
-    });
-  }
-
-  // Function to process hold order after modal confirmation
-  function processHoldOrder(tableNumber, customerName) {
-    const savedOrders = JSON.parse(localStorage.getItem('heldOrders')) || [];
-    const holdId = Date.now();
-    
-    // Calculate accurate total raw (including item discounts, global discount, and tax)
-    const subtotal = orders.reduce((sum, o) => sum + (o.price * o.qty * (1 - (o.discount || 0) / 100)), 0);
-    const discountPercent = parseFloat(document.getElementById('global-discount-input').value) || 0;
-    const taxPercent = parseFloat(document.getElementById('tax-input').value) || 0;
-    const discountAmount = subtotal * (discountPercent / 100);
-    const afterDiscount = subtotal - discountAmount;
-    const taxAmount = afterDiscount * (taxPercent / 100);
-    const finalTotal = afterDiscount + taxAmount;
-    
-    savedOrders.push({
-      id: holdId,
-      timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-      items: orders.map(o => ({ ...o })), // copy array
-      totalRaw: finalTotal, // Save final calculated total
-      globalDiscount: discountPercent,
-      tax: taxPercent, // Save tax
-      notes: orderNotes,
-      tableNumber: tableNumber,
-      customerName: customerName
-    });
-    
-    localStorage.setItem('heldOrders', JSON.stringify(savedOrders));
-    
-    showModal('Berhasil', 'Pesanan masuk ke Cart!', 'success');
-    orders = [];
-    globalDiscount = 0;
-    orderNotes = '';
-    currentTableNumber = '';
-    currentCustomerName = '';
-    updateActiveOrderInfoUI();
-    
-    // Clear UI inputs
-    const orderNotesInput = document.getElementById('order-notes');
-    if (orderNotesInput) orderNotesInput.value = '';
-    
-    const discountInput = document.getElementById('global-discount-input');
-    if (discountInput) discountInput.value = 0;
-    
-    const taxInput = document.getElementById('tax-input');
-    if (taxInput) taxInput.value = 0;
-    
-    renderOrderList();
-    updateTotal();
-    updateCartBadge(); // Update badge setelah hold
-  }
-
   // Hold button logic
   const holdBtn = document.getElementById('hold-btn');
   if (holdBtn) {
@@ -2225,8 +1341,25 @@
         return;
       }
       
-      // Show modal for optional fields
-      showHoldOrderModal();
+      const savedOrders = JSON.parse(localStorage.getItem('heldOrders')) || [];
+      const holdId = Date.now();
+      
+      savedOrders.push({
+        id: holdId,
+        timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        items: orders.map(o => ({ ...o })), // copy array
+        totalRaw: orders.reduce((sum, o) => sum + (o.price * o.qty), 0),
+        globalDiscount: globalDiscount,
+        notes: orderNotes
+      });
+      
+      localStorage.setItem('heldOrders', JSON.stringify(savedOrders));
+      
+      showModal('Berhasil', 'Pesanan masuk ke Cart!', 'success');
+      orders = [];
+      renderOrderList();
+      updateTotal();
+      updateCartBadge(); // Update badge setelah hold
     });
   }
 
@@ -2295,8 +1428,6 @@
       savedOrders.forEach((order, idx) => {
         const itemCount = order.items.reduce((acc, curr) => acc + curr.qty, 0);
         const hasDiscount = order.globalDiscount > 0;
-        const hasTax = order.tax > 0;
-        const hasTableInfo = order.tableNumber || order.customerName;
         contentHtml += `
           <div class="group bg-white border-2 border-gray-100 hover:border-[#4F2E22]/50 hover:shadow-lg rounded-xl p-4 cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02]" onclick="restoreOrder(${idx})">
             <div class="flex items-start justify-between mb-3">
@@ -2320,21 +1451,7 @@
                       <span>•</span>
                       <span class="text-green-600 font-medium">Diskon ${order.globalDiscount}%</span>
                     ` : ''}
-                    ${hasTax ? `
-                      <span>•</span>
-                      <span class="text-blue-600 font-medium">Pajak ${order.tax}%</span>
-                    ` : ''}
                   </div>
-                  ${hasTableInfo ? `
-                    <div class="flex items-center gap-2 text-xs text-[#4F2E22] mt-1">
-                      ${order.tableNumber ? `
-                        <span class="bg-[#4F2E22]/10 px-2 py-0.5 rounded-full">Meja: ${order.tableNumber}</span>
-                      ` : ''}
-                      ${order.customerName ? `
-                        <span class="bg-[#4F2E22]/10 px-2 py-0.5 rounded-full">${order.customerName}</span>
-                      ` : ''}
-                    </div>
-                  ` : ''}
                 </div>
               </div>
               <button class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-red-500 hover:text-red-700 p-1" onclick="event.stopPropagation(); deleteOrder(${idx})" title="Hapus Order">
@@ -2351,9 +1468,6 @@
                 ${hasDiscount ? `
                   <div class="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">-${order.globalDiscount}%</div>
                 ` : ''}
-                ${hasTax ? `
-                  <div class="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">+Pajak ${order.tax}%</div>
-                ` : ''}
               </div>
               <div class="flex items-center gap-2 text-xs text-[#4F2E22] font-medium group-hover:text-[#3f251b] transition-colors">
                 <span>Klik untuk restore</span>
@@ -2369,9 +1483,9 @@
     }
 
     modal.innerHTML = `
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 opacity-100" id="cart-modal-content">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100 opacity-100" id="cart-modal-content">
         <!-- Header -->
-        <div class="bg-gradient-to-r from-[#4F2E22] to-[#3f251b] p-6 relative flex-shrink-0">
+        <div class="bg-gradient-to-r from-[#4F2E22] to-[#3f251b] p-6 rounded-t-2xl relative">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
@@ -2393,7 +1507,7 @@
         </div>
         
         <!-- Content -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+        <div class="p-6">
           ${contentHtml}
         </div>
         
@@ -2473,8 +1587,8 @@
     modal.className = 'fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
 
     modal.innerHTML = `
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-        <div class="bg-gradient-to-r from-[#4F2E22] to-[#3f251b] p-6 flex items-center justify-between flex-shrink-0">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+        <div class="bg-gradient-to-r from-[#4F2E22] to-[#3f251b] p-6 flex items-center justify-between">
           <h2 class="text-xl font-bold text-white flex items-center gap-2">
             <span class="material-symbols-outlined">history</span>
             Riwayat Transaksi
@@ -2485,10 +1599,8 @@
             </svg>
           </button>
         </div>
-        <div class="flex-1 overflow-y-auto" id="history-content">
-          <div class="p-6 text-center">
-            <div class="text-gray-500">Memuat data...</div>
-          </div>
+        <div class="p-6 text-center" id="history-content">
+          <div class="text-gray-500">Memuat data...</div>
         </div>
       </div>
     `;
@@ -2508,11 +1620,9 @@
         
         if (!data.transactions || data.transactions.length === 0) {
           contentDiv.innerHTML = `
-            <div class="flex items-center justify-center h-full">
-              <div class="text-center py-8">
-                <div class="text-gray-400 text-lg">Belum ada transaksi hari ini</div>
-                <div class="text-gray-400 text-sm mt-2">Transaksi akan muncul di sini setelah melakukan pembayaran</div>
-              </div>
+            <div class="text-center py-8">
+              <div class="text-gray-400 text-lg">Belum ada transaksi hari ini</div>
+              <div class="text-gray-400 text-sm mt-2">Transaksi akan muncul di sini setelah melakukan pembayaran</div>
             </div>
           `;
           return;
@@ -2546,14 +1656,14 @@
             </td>
             <td class="px-6 py-4">
               <div class="text-sm text-gray-600">
-                ${new Date(transaction.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', second:'2-digit'})}
+                ${new Date(transaction.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}
               </div>
               <div class="text-xs text-gray-500">
                 ${new Date(transaction.created_at).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}
               </div>
             </td>
             <td class="px-6 py-4 text-center">
-              <button onclick="printReceiptFromHistory(${transaction.id})" class="bg-[#4F2E22] hover:bg-[#3f251b] text-white px-4 py-2 rounded-lg text-sm">
+              <button onclick="printReceiptFromHistory('${transaction.order_number}')" class="bg-[#4F2E22] hover:bg-[#3f251b] text-white px-4 py-2 rounded-lg text-sm">
                 Cetak
               </button>
             </td>
@@ -2561,26 +1671,24 @@
         `).join('');
 
         contentDiv.innerHTML = `
-          <div class="p-6">
-            <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead class="bg-gray-50 border-b sticky top-0 z-10">
-                  <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-gray-50">Order ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-gray-50">Pembayaran</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-gray-50">Total</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase bg-gray-50">Waktu</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase bg-gray-50">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y">
-                  ${tableRows}
-                </tbody>
-              </table>
-            </div>
-            <div class="mt-4 text-sm text-gray-500 text-center">
-              Menampilkan ${data.transactions.length} transaksi hari ini
-            </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pembayaran</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Waktu</th>
+                  <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y">
+                ${tableRows}
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-4 text-sm text-gray-500 text-center">
+            Menampilkan ${data.transactions.length} transaksi hari ini
           </div>
         `;
       })
@@ -2601,9 +1709,9 @@
     });
   }
 
-  function printReceiptFromHistory(transactionId) {
-    // Open receipt in new tab for printing using kasir route
-    const printWindow = window.open(`/kasir/receipt/${transactionId}`, '_blank');
+  function printReceiptFromHistory(orderNumber) {
+    // Open receipt in new tab for kasir order number
+    const printWindow = window.open(`/kasir/receipt/number/${encodeURIComponent(orderNumber)}`, '_blank');
     if (printWindow) {
       printWindow.focus();
     }
@@ -2620,11 +1728,12 @@
         const modal = document.createElement('div');
         modal.id = 'settings-modal';
         modal.className = 'fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+        let capturedPhotoFile = null;
         
         modal.innerHTML = `
-          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all duration-300 scale-100 opacity-100" id="settings-modal-content">
+          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col transform transition-all duration-300 scale-100 opacity-100" id="settings-modal-content">
             <!-- Header -->
-            <div class="bg-gradient-to-r from-[#4F2E22] to-[#3f251b] p-6 relative flex-shrink-0">
+            <div class="bg-gradient-to-r from-[#4F2E22] to-[#3f251b] p-6 relative">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                   <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
@@ -2646,8 +1755,8 @@
               </div>
             </div>
             
-            <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
-              <form id="settings-form" class="space-y-8" enctype="multipart/form-data">
+            <div class="p-6 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+              <form id="settings-form" class="space-y-8">
                 <!-- Profile Photo Section -->
                 <div class="bg-gradient-to-br from-[#4F2E22]/5 to-[#3f251b]/5 rounded-2xl p-6 border border-[#4F2E22]/10">
                   <div class="text-center">
@@ -2787,9 +1896,9 @@
             </div>
             
             <!-- Footer -->
-            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-6 border-t border-gray-200 flex-shrink-0">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-6 border-t border-gray-200">
               <div class="flex gap-3">
-                <button id="settings-submit" type="submit" form="settings-form" class="flex-1 bg-[#4F2E22] hover:bg-[#3f251b] text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 btn-scale">
+                <button type="submit" form="settings-form" class="flex-1 bg-[#4F2E22] hover:bg-[#3f251b] text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:shadow-lg active:scale-95 btn-scale">
                   <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                   </svg>
@@ -2879,31 +1988,30 @@
                 
                 // Convert to blob and update preview
                 canvas.toBlob(function(blob) {
-                  const url = URL.createObjectURL(blob);
-                  document.getElementById('profile-preview').src = url;
-                  
-                  // Update file input for form submission
-                  const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' });
-                  const dataTransfer = new DataTransfer();
-                  dataTransfer.items.add(file);
-                  document.getElementById('profile-photo').files = dataTransfer.files;
-                  
-                  // Stop camera stream
+                    const fileName = `profile-${Date.now()}.jpg`;
+                    const file = new File([blob], fileName, { type: 'image/jpeg' });
+                    capturedPhotoFile = file;
+                    const url = URL.createObjectURL(blob);
+                    document.getElementById('profile-preview').src = url;
+                    
+                    // Update file input for form submission if supported
+                    try {
+                      const dataTransfer = new DataTransfer();
+                      dataTransfer.items.add(file);
+                      document.getElementById('profile-photo').files = dataTransfer.files;
+                    } catch (error) {
+                      console.warn('Unable to set hidden input files directly:', error);
+                    }
+                  }, 'image/jpeg');
+                });
+
+                document.getElementById('cancel-camera-btn').addEventListener('click', function() {
                   stream.getTracks().forEach(track => track.stop());
-                  
-                  // Remove camera modal
                   cameraModal.remove();
-                }, 'image/jpeg');
-              });
-              
-              // Cancel camera
-              document.getElementById('cancel-camera-btn').addEventListener('click', function() {
-                stream.getTracks().forEach(track => track.stop());
-                cameraModal.remove();
-              });
-              
-            })
-            .catch(function(error) {
+                });
+                
+              })
+              .catch(function(error) {
               console.error('Camera access denied:', error);
               // Fallback to file input if camera access denied
               document.getElementById('camera-input').click();
@@ -2914,10 +2022,24 @@
           }
         });
 
+        // Profile photo input preview (upload fallback)
+        document.getElementById('profile-photo').addEventListener('change', function(e) {
+          const file = e.target.files[0];
+          if (file) {
+            capturedPhotoFile = file;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              document.getElementById('profile-preview').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+
         // Camera input preview
         document.getElementById('camera-input').addEventListener('change', function(e) {
           const file = e.target.files[0];
           if (file) {
+            capturedPhotoFile = file;
             const reader = new FileReader();
             reader.onload = function(e) {
               document.getElementById('profile-preview').src = e.target.result;
@@ -2935,7 +2057,13 @@
           e.preventDefault();
           
           const formData = new FormData(this);
-          const submitBtn = document.getElementById('settings-submit');
+          const profilePhotoInput = document.getElementById('profile-photo');
+          if (profilePhotoInput && profilePhotoInput.files.length > 0) {
+            formData.set('profile_photo', profilePhotoInput.files[0]);
+          } else if (capturedPhotoFile) {
+            formData.set('profile_photo', capturedPhotoFile, capturedPhotoFile.name);
+          }
+          const submitBtn = modal.querySelector('button[type="submit"]');
           const originalText = submitBtn ? submitBtn.textContent : 'Menyimpan...';
           
           if (submitBtn) {
@@ -2943,7 +2071,7 @@
             submitBtn.disabled = true;
           }
 
-          // Add method override for POST route
+          // Add method override for PUT/PATCH if needed
           formData.append('_method', 'POST');
 
           fetch('/api/user/profile', {
@@ -3009,29 +2137,12 @@
       orders = selectedOrder.items.map(item => ({ ...item })); // copy deep
       globalDiscount = selectedOrder.globalDiscount || 0;
       orderNotes = selectedOrder.notes || '';
-      const restoredTax = selectedOrder.tax || 0;
-      currentTableNumber = selectedOrder.tableNumber || '';
-      currentCustomerName = selectedOrder.customerName || '';
-      updateActiveOrderInfoUI();
       
-      // Update UI untuk diskon, catatan, dan pajak
+      // Update UI untuk diskon dan catatan
       const orderNotesInput = document.getElementById('order-notes');
       if (orderNotesInput) {
         orderNotesInput.value = orderNotes;
       }
-      
-      const discountInput = document.getElementById('global-discount-input');
-      if (discountInput) {
-        discountInput.value = globalDiscount;
-      }
-      
-      const taxInput = document.getElementById('tax-input');
-      if (taxInput) {
-        taxInput.value = restoredTax;
-      }
-      
-      // Note: Table number and customer name are not restored to UI since they are only entered during hold
-      // They are stored in the held order data and displayed in the cart modal
       
       // Hapus dari saved
       savedOrders.splice(index, 1);
@@ -3050,7 +2161,6 @@
   // Initialize - tampilkan pesan kosong dan update badge
   renderOrderList();
   updateCartBadge(); // Cek localStorage saat load
-  updateActiveOrderInfoUI();
   
   // Category Dropdown functionality
   const categoryDropdownBtn = document.getElementById('category-dropdown-btn');
@@ -3127,28 +2237,9 @@
   if (searchInput) {
     searchInput.addEventListener('input', function() {
       const search = this.value.toLowerCase();
-      const currentCategory = selectedCategoryText.textContent;
-      
       document.querySelectorAll('.menu-card').forEach(card => {
         const name = card.dataset.productName.toLowerCase();
-        const productCategoryId = card.dataset.categoryId;
-        
-        // Check if product matches search
-        const matchesSearch = name.includes(search);
-        
-        // Check if product matches current category
-        let matchesCategory = false;
-        if (currentCategory === 'All Menu') {
-          matchesCategory = true;
-        } else if (currentCategory === 'Best Seller') {
-          matchesCategory = productCategoryId === '8';
-        } else {
-          // For other categories, check if it's not filtered out
-          matchesCategory = card.style.display !== 'none';
-        }
-        
-        // Show/hide based on both search and category
-        if (matchesSearch && matchesCategory) {
+        if (name.includes(search)) {
           card.style.display = 'flex';
         } else {
           card.style.display = 'none';
@@ -3178,35 +2269,3 @@
       });
     });
   });
-</script>
-</section>
-</section>
-
-<!-- Overlay -->
-<div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-20"></div>
-
-<script>
-    const hamburgerBtn = document.getElementById('hamburger-btn');
-    const sidebar = document.getElementById('sidebar');
-    const closeSidebarBtn = document.getElementById('close-sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-
-    hamburgerBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('-translate-x-full');
-        overlay.classList.toggle('hidden');
-    });
-
-    closeSidebarBtn.addEventListener('click', () => {
-        sidebar.classList.add('-translate-x-full');
-        overlay.classList.add('hidden');
-    });
-
-    overlay.addEventListener('click', () => {
-        sidebar.classList.add('-translate-x-full');
-        overlay.classList.add('hidden');
-    });
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
-</body>
-</html>

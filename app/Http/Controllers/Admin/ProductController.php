@@ -46,11 +46,13 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'is_best_seller' => 'boolean'
         ]);
 
         $data = $request->all();
         $data['slug'] = Str::slug($request->name);
+        $data['is_best_seller'] = $request->has('is_best_seller');
 
         if ($request->hasFile('image')) {
             $image = $request->file('image');
@@ -87,11 +89,13 @@ class ProductController extends Controller
         'price' => 'required|numeric|min:0',
         'stock' => 'required|integer|min:0',
         'category_id' => 'required|exists:categories,id',
-        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'is_best_seller' => 'boolean'
     ]);
 
     $data = $request->all();
     $data['slug'] = Str::slug($request->name);
+    $data['is_best_seller'] = $request->has('is_best_seller');
 
     // Handle image upload
     if ($request->hasFile('image')) {

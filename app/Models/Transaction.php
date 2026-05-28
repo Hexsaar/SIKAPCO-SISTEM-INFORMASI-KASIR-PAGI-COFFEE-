@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Expense;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -60,8 +61,8 @@ class Transaction extends Model
 
     public static function getTodayExpense(): float
     {
-        // Untuk sekarang return 0, nanti bisa ditambahkan tabel expenses
-        return 0;
+        return Expense::whereDate('expense_date', today())
+            ->sum('amount');
     }
 
     public static function getTodayTransactionsCount(): int

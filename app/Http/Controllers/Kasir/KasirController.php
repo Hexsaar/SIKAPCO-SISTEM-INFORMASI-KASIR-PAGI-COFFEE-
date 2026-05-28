@@ -17,8 +17,30 @@ class KasirController extends Controller
 {
     public function index()
     {
-        $categories = Category::all();
-        $products = Product::with('category')->where('stock', '>', 0)->get();
+        $categories = Category::orderByRaw("CASE name
+                WHEN 'Coffee' THEN 1
+                WHEN 'Non Coffee' THEN 2
+                WHEN 'Coffee Milk' THEN 3
+                WHEN 'Snack' THEN 4
+                WHEN 'Bottle' THEN 5
+                ELSE 6 END")
+            ->orderBy('name')
+            ->get();
+
+        $products = Product::with('category')
+            ->where('stock', '>', 0)
+            ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->orderByRaw("CASE categories.name
+                WHEN 'Coffee' THEN 1
+                WHEN 'Non Coffee' THEN 2
+                WHEN 'Coffee Milk' THEN 3
+                WHEN 'Snack' THEN 4
+                WHEN 'Bottle' THEN 5
+                ELSE 6 END")
+            ->orderBy('categories.name')
+            ->orderBy('products.name')
+            ->select('products.*')
+            ->get();
         
         return view('kasir.index', compact('categories', 'products'));
     }
@@ -142,6 +164,7 @@ class KasirController extends Controller
                 'total_item_discount' => 0,
                 'global_discount_percent' => $globalDiscountPercent,
                 'global_discount_amount' => $globalDiscountAmount,
+                'tax_amount' => $taxAmount,
                 'notes' => $request->notes ?? null,
             ]);
 
@@ -166,8 +189,48 @@ class KasirController extends Controller
 
     public function receipt($orderId)
     {
-        $order = Order::with('items.product')->findOrFail($orderId);
-        return view('kasir.receipt', compact('order'));
+        $transaction = Transaction::with('user')->findOrFail($orderId);
+        $this->hydrateTransactionItemNames($transaction);
+
+        return view('orders.receipt', ['transaction' => $transaction]);
+    }
+
+    public function receiptByOrderNumber($orderNumber)
+    {
+        $transaction = Transaction::with('user')
+            ->where('transaction_number', $orderNumber)
+            ->firstOrFail();
+
+        $this->hydrateTransactionItemNames($transaction);
+
+        return view('orders.receipt', ['transaction' => $transaction]);
+    }
+
+    private function hydrateTransactionItemNames(Transaction $transaction)
+    {
+        if (!is_array($transaction->items) || empty($transaction->items)) {
+            return;
+        }
+
+        $productIds = collect($transaction->items)
+            ->pluck('id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($productIds)) {
+            return;
+        }
+
+        $productNames = Product::whereIn('id', $productIds)
+            ->pluck('name', 'id')
+            ->all();
+
+        $transaction->items = collect($transaction->items)->map(function ($item) use ($productNames) {
+            $item['product_name'] = $productNames[$item['id']] ?? ($item['product_name'] ?? 'Unknown');
+            return $item;
+        })->toArray();
     }
 
     public function orders()
@@ -187,7 +250,8 @@ class KasirController extends Controller
                 $transactions = Transaction::with('user')
                     ->whereDate('created_at', today())
                     ->orderBy('created_at', 'desc')
-                    ->limit(10)
+                    ->orderBy('id', 'desc')
+                    ->limit(50)
                     ->get(['id', 'transaction_number', 'payment_method', 'total_amount', 'created_at', 'user_id']);
             } catch (\Exception $e) {
                 // Table might not exist, just return empty
@@ -199,6 +263,7 @@ class KasirController extends Controller
                     return [
                         'id' => $transaction->id ?? 0,
                         'transaction_number' => $transaction->transaction_number ?? 'N/A',
+                        'order_number' => $transaction->transaction_number ?? 'N/A',
                         'payment_method' => $transaction->payment_method ?? 'cash',
                         'total_amount' => $transaction->total_amount ?? 0,
                         'created_at' => $transaction->created_at ? $transaction->created_at->toISOString() : now()->toISOString(),

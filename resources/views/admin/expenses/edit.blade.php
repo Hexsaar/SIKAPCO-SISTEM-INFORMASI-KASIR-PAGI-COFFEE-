@@ -7,6 +7,10 @@
     <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">Edit Pengeluaran</h1>
+            <p class="text-gray-600">Ubah data pengeluaran</p>
+        </div>
+            
             <nav class="flex" aria-label="Breadcrumb">
                 <ol class="flex items-center space-x-4">
                     <li>
@@ -154,7 +158,7 @@
                     <a href="{{ route('admin.expenses.index') }}" class="inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-1">
                         Batal
                     </a>
-                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-2">
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#4F2E22] hover:bg-[#3e251b] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4B332B] sm:col-start-2">
                         <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>

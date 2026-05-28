@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Employee;
+use App\Models\Expense;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +35,9 @@ class DashboardController extends Controller
                 ->where('status', 'completed')
                 ->sum('total_amount');
                 
-            $monthlyExpense = 0; // TODO: Implement expense tracking
+            $monthlyExpense = Expense::whereMonth('expense_date', $month->month)
+                ->whereYear('expense_date', $month->year)
+                ->sum('amount');
                 
             $incomeData[] = $monthlyIncome;
             $expenseData[] = $monthlyExpense;
@@ -108,32 +111,58 @@ class DashboardController extends Controller
         $transactions = $query->get();
         
         $productSales = [];
+        $productIds = [];
         
         foreach ($transactions as $transaction) {
             if (is_array($transaction->items)) {
                 foreach ($transaction->items as $item) {
-                    $productName = $item['product_name'] ?? 'Unknown';
+                    $productId = $item['id'] ?? null;
+                    $productName = $item['product_name'] ?? null;
                     $quantity = $item['quantity'] ?? 0;
                     
-                    if (!isset($productSales[$productName])) {
-                        $productSales[$productName] = [
-                            'total_sold' => 0,
-                            'product_id' => null
-                        ];
+                    if ($productId) {
+                        $key = 'id:' . $productId;
+                        if (!isset($productSales[$key])) {
+                            $productSales[$key] = [
+                                'total_sold' => 0,
+                                'product_id' => $productId,
+                                'product_name' => $productName,
+                                'price' => 0,
+                            ];
+                        }
+                        $productSales[$key]['total_sold'] += $quantity;
+                        $productIds[] = $productId;
+                    } else {
+                        $key = $productName ?: 'Unknown';
+                        if (!isset($productSales[$key])) {
+                            $productSales[$key] = [
+                                'total_sold' => 0,
+                                'product_id' => null,
+                                'product_name' => $productName ?: 'Unknown',
+                                'price' => 0,
+                            ];
+                        }
+                        $productSales[$key]['total_sold'] += $quantity;
                     }
-                    $productSales[$productName]['total_sold'] += $quantity;
                 }
             }
         }
         
         // Ambil harga produk dari database untuk setiap produk yang terjual
-        foreach ($productSales as $productName => &$data) {
-            $product = Product::where('name', $productName)->first();
-            if ($product) {
-                $data['price'] = $product->price;
-                $data['product_id'] = $product->id;
-            } else {
-                $data['price'] = 0; // Default jika produk tidak ditemukan
+        if (!empty($productIds)) {
+            $products = Product::whereIn('id', array_unique($productIds))->get()->keyBy('id');
+            foreach ($productSales as &$data) {
+                if ($data['product_id'] && isset($products[$data['product_id']])) {
+                    $product = $products[$data['product_id']];
+                    $data['price'] = $product->price;
+                    $data['product_name'] = $product->name;
+                }
+            }
+        }
+        
+        foreach ($productSales as $key => &$data) {
+            if (empty($data['product_name'])) {
+                $data['product_name'] = 'Unknown';
             }
         }
         
@@ -146,9 +175,9 @@ class DashboardController extends Controller
         
         // Convert to collection for consistency
         $result = collect();
-        foreach ($topSellers as $name => $data) {
+        foreach ($topSellers as $data) {
             $result->push((object) [
-                'name' => $name,
+                'name' => $data['product_name'] ?? 'Unknown',
                 'total_sold' => $data['total_sold'],
                 'price' => $data['price'],
                 'product_id' => $data['product_id']
@@ -171,19 +200,25 @@ class DashboardController extends Controller
         foreach ($transactions as $transaction) {
             if (is_array($transaction->items)) {
                 foreach ($transaction->items as $item) {
-                    $productName = $item['product_name'] ?? 'Unknown';
+                    $productId = $item['id'] ?? null;
+                    $productName = $item['product_name'] ?? null;
                     $quantity = $item['quantity'] ?? 0;
-                    
-                    // Cari product berdasarkan nama untuk dapatkan kategori
-                    $product = Product::where('name', $productName)->first();
-                    
+
+                    $product = null;
+                    if ($productId) {
+                        $product = Product::with('category')->find($productId);
+                    }
+
+                    if (!$product && $productName) {
+                        $product = Product::with('category')->where('name', $productName)->first();
+                    }
+
                     if ($product && $product->category) {
                         $categoryName = $product->category->name;
                     } else {
-                        // Default kategori jika tidak ditemukan
                         $categoryName = $this->getDefaultCategory($productName);
                     }
-                    
+
                     if (!isset($categoryTotals[$categoryName])) {
                         $categoryTotals[$categoryName] = 0;
                     }

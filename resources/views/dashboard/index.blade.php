@@ -10,9 +10,16 @@
             <h1 class="text-2xl font-bold text-gray-800">Selamat Datang, {{ auth()->user()->name }}!</h1>
             <p class="text-gray-600">{{ now()->locale('id')->translatedFormat('l, F d Y') }}</p>
         </div>
-        <div class="text-right">
-            <p class="font-semibold text-gray-800">{{ auth()->user()->name }}</p>
-            <p class="text-sm text-gray-600">Owner</p>
+        
+        <!-- Profile Section -->
+        <div class="flex items-center gap-3">
+            <div class="text-right">
+                <p class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</p>
+                <p class="text-xs text-gray-500">{{ auth()->user()->username }}</p>
+            </div>
+            <a href="{{ route('profile.edit') }}" class="flex items-center justify-center w-12 h-12 rounded-full overflow-hidden ring-2 ring-gray-200 hover:ring-[#4B332B] transition-all">
+                <img src="{{ auth()->user()->profile_photo_url }}" alt="Profile" class="w-full h-full object-cover">
+            </a>
         </div>
     </div>
 

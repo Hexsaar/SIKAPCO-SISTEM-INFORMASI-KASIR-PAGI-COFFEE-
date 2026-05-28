@@ -34,7 +34,30 @@
                 <h1 class="text-xl font-bold">Kasir - POS System</h1>
             </div>
             <div class="flex items-center space-x-4">
-                <span class="text-sm hidden md:inline">Welcome, {{ auth()->user()->name }}</span>
+                <!-- Profile Section -->
+                <div class="hidden md:flex items-center gap-3">
+                    <div class="text-right">
+                        <p class="text-sm font-medium text-white">{{ auth()->user()->name }}</p>
+                        <p class="text-xs text-gray-300">{{ auth()->user()->username }}</p>
+                    </div>
+                    <a href="{{ route('profile.edit') }}" class="flex items-center justify-center w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/30 hover:ring-white transition-all">
+                        @if(auth()->user()->profile_photo)
+                            <img src="{{ auth()->user()->profile_photo_url }}" alt="Profile" class="w-full h-full object-cover">
+                        @else
+                            <img src="{{ auth()->user()->profile_photo_url }}" alt="Profile" class="w-full h-full object-cover">
+                        @endif
+                    </a>
+                </div>
+                
+                <!-- Mobile Profile -->
+                <a href="{{ route('profile.edit') }}" class="md:hidden flex items-center justify-center w-8 h-8 rounded-full overflow-hidden ring-2 ring-white/30">
+                    @if(auth()->user()->profile_photo)
+                        <img src="{{ auth()->user()->profile_photo_url }}" alt="Profile" class="w-full h-full object-cover">
+                    @else
+                        <img src="{{ auth()->user()->profile_photo_url }}" alt="Profile" class="w-full h-full object-cover">
+                    @endif
+                </a>
+                
                 <span class="bg-white text-[#4F2E22] text-xs px-2 py-1 rounded-full">Kasir</span>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
