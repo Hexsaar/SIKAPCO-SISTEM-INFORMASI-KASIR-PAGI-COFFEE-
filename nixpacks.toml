@@ -1,9 +1,8 @@
 [phases.setup]
-nixPkgs = ["...", "php83Extensions.pdo_mysql"]
+nixPkgs = ["php83", "php83Extensions.pdo_mysql", "nginx"]
 
 [phases.build]
-cmds = ["composer install --no-dev --no-interaction --prefer-dist/--optimize-autoloader"]
+cmds = ["composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader"]
 
-# Ini perintah sakral untuk mengosongkan fase rilis bawaan Nixpacks yang merusak tadi
-[phases.release]
-cmds = ["php artisan config:cache", "php artisan route:cache"]
+[start]
+cmd = "php artisan serve --host=0.0.0.0 --port=$PORT"
