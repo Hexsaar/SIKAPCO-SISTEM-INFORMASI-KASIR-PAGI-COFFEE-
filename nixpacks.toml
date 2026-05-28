@@ -1,0 +1,9 @@
+[phases.setup]
+nixPkgs = ["...", "php83Extensions.pdo_mysql"]
+
+[phases.build]
+cmds = ["composer install --no-dev --no-interaction --prefer-dist/--optimize-autoloader"]
+
+# Ini perintah sakral untuk mengosongkan fase rilis bawaan Nixpacks yang merusak tadi
+[phases.release]
+cmds = ["php artisan config:cache", "php artisan route:cache"]
