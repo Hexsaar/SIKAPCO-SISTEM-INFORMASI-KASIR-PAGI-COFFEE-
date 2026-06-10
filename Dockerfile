@@ -1,6 +1,6 @@
 FROM php:8.3-apache
 
-# Install dependencies & PHP extensions (Termasuk libzip-dev dan ext-zip)
+# Install dependencies sistem (TANPA menginstall apache2 lagi)
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
