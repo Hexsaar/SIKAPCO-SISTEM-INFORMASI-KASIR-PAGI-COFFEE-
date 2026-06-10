@@ -1,7 +1,8 @@
-FROM php:8.3-apache
+FROM php:8.3-fpm
 
-# Install dependencies sistem (TANPA menginstall apache2 lagi)
+# Install dependencies sistem & ekstensi PHP
 RUN apt-get update && apt-get install -y \
+    nginx \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
@@ -12,15 +13,10 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd pdo pdo_mysql zip
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
+# Copy konfigurasi Nginx custom
+COPY nginx.conf /etc/nginx/sites-available/default
 
-# Set Document Root ke folder public Laravel
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
-
-# Mengizinkan Composer berjalan sebagai superuser di Docker
+# Mengizinkan Composer berjalan sebagai superuser
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 # Copy project files
@@ -34,3 +30,6 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 80
+
+# Jalankan PHP-FPM dan Nginx bersamaan
+CMD service php8.3-fpm start && nginx -g "daemon off;"
