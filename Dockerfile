@@ -31,5 +31,5 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 
 EXPOSE 80
 
-# Jalankan PHP-FPM dan Nginx bersamaan
-CMD service php8.3-fpm start && nginx -g "daemon off;"
+# PASTIKAN BARIS INI MENGGUNAKAN php-fpm -D
+CMD php-fpm -D && nginx -g "daemon off;"
