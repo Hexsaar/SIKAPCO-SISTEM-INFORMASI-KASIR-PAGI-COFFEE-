@@ -29,7 +29,10 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
+# Hapus cache murni biar env Railway terbaca
+RUN rm -f bootstrap/cache/*.php
+
 EXPOSE 80
 
-# PASTIKAN BARIS INI MENGGUNAKAN php-fpm -D
+# Jalankan server
 CMD php-fpm -D && nginx -g "daemon off;"
