@@ -35,4 +35,4 @@ RUN rm -f bootstrap/cache/*.php
 EXPOSE 80
 
 # Jalankan server
-CMD php-fpm -D && nginx -g "daemon off;"
+CMD php artisan config:clear && php artisan cache:clear && php-fpm -D && nginx -g "daemon off;"
